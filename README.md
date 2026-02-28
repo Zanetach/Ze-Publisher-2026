@@ -1,74 +1,43 @@
 # Ze Publisher
 
-Ze Publisher is an Obsidian plugin for content editing, AI analysis, theme styling, image generation, and multi-platform distribution.
+## Introduction
 
-Current release target: `0.25`
+Ze Publisher is an Obsidian publishing workflow plugin.  
+It helps you format content, run AI-assisted operations, generate images, preview results in real time, and distribute content to external platforms in a unified workflow.
 
 ## Key Features
 
-- Real-time article preview and style rendering
-- AI analysis action button with selectable analysis type
-- Stable Mermaid rendering in content area (with fallback normalization)
-- Content distribution settings for WeChat, X (Twitter), Zhihu
-- Cover/image generation workflow
-- Theme and template kit management
-- Dark/light UI adaptation
+- Real-time article rendering and preview
+- AI analysis and content operation panel
+- Mermaid diagram rendering in content area
+- Theme and template kit switching
+- Content distribution settings for platforms such as WeChat, X (Twitter), and Zhihu
+- Cover/image generation and save workflow
 
-## Plugin IDs
+## Installation
 
-This project currently supports both IDs for compatibility:
-
-- New ID: `ze-publisher`
-- Legacy ID: `zepublish`
-
-If your vault still enables `zepublish`, the latest build can still run through compatibility handling.
-
-## Install (Manual)
-
-1. Build from source:
+### From source
 
 ```bash
 pnpm install
 pnpm build
 ```
 
-2. Copy plugin build output to your vault plugin folder:
+Then copy the built plugin output to your Obsidian vault plugin folder and enable it in Obsidian.
 
-- Preferred: `.obsidian/plugins/ze-publisher`
-- Compatible: `.obsidian/plugins/zepublish`
-
-## Development
+### Local sync (development)
 
 ```bash
-pnpm dev
-pnpm check
 pnpm sync:plugin
 ```
 
-`sync:plugin` uses `.env.local`:
+You can set the vault path in `.env.local`:
 
 ```env
 OBSIDIAN_VAULT_PATH=/absolute/path/to/your/vault
 ```
 
-## Distribution Platforms
+## License
 
-- WeChat Official Account
-- X (Twitter)
-- Zhihu
-
-Each platform can be enabled and configured independently in content distribution settings.
-
-## Versioning
-
-Version is synchronized across:
-
-- Root `package.json`
-- `packages/obsidian/manifest.json`
-- `packages/obsidian/package.json`
-- `packages/frontend/package.json`
-
-## Author
-
-Author: `Zanetach`
+MIT
 
