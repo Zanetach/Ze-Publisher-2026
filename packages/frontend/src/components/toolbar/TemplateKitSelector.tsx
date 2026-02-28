@@ -109,6 +109,28 @@ export const TemplateKitSelector: React.FC<TemplateKitSelectorProps> = ({
 			.replace(/^MP\s*Pub\s*/i, "")
 			.trim();
 
+	const isDefaultKit = (kit: TemplateKit) => {
+		const theme = String(kit.styleConfig?.theme || "").toLowerCase();
+		const id = String(kit.basicInfo?.id || "").toLowerCase();
+		const name = cleanKitName(String(kit.basicInfo?.name || ""));
+		return (
+			theme === "mpp-default" ||
+			id === "kit-mpp-default" ||
+			name.includes("默认")
+		);
+	};
+
+	const orderedKits = useMemo(() => {
+		const copied = [...kits];
+		copied.sort((a, b) => {
+			const aDefault = isDefaultKit(a) ? 0 : 1;
+			const bDefault = isDefaultKit(b) ? 0 : 1;
+			if (aDefault !== bDefault) return aDefault - bDefault;
+			return 0;
+		});
+		return copied;
+	}, [kits]);
+
 	const elevatedCardStyle: React.CSSProperties = {
 		borderRadius: "18px",
 		border: isUIDark
@@ -171,7 +193,7 @@ export const TemplateKitSelector: React.FC<TemplateKitSelectorProps> = ({
 
 	return (
 		<div className="space-y-3">
-			{kits.map((kit) => {
+			{orderedKits.map((kit) => {
 				const active = currentTheme === kit.styleConfig.theme;
 				const applying = applyingKitId === kit.basicInfo.id;
 				const displayName = cleanKitName(kit.basicInfo.name);

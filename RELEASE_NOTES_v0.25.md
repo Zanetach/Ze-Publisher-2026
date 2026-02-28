@@ -19,4 +19,5 @@ Release date: 2026-02-28
 - Author updated to `Zanetach`
 - README refreshed to current architecture and usage
 - Changelog updated with v0.25 summary
-
+- Template kit list ordering updated: `默认主题` pinned to top
+- Default style behavior updated: no manual switch uses `mpp-default`

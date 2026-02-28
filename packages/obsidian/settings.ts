@@ -159,7 +159,7 @@ export class NMPSettings implements SettingsData {
 	// 单例实例
 	private static instance: NMPSettings;
 	// interface SettingsData
-	defaultStyle: string = "mweb-default";
+	defaultStyle: string = "mpp-default";
 	defaultHighlight: string = "默认";
 	showStyleUI: boolean = true;
 	linkDescriptionMode: LinkDescriptionMode = LinkDescriptionMode.Raw;
@@ -239,7 +239,7 @@ export class NMPSettings implements SettingsData {
 
 	// 重置样式和高亮设置
 	resetStyelAndHighlight(): void {
-		this.defaultStyle = "mweb-default";
+		this.defaultStyle = "mpp-default";
 		this.defaultHighlight = "默认";
 	}
 

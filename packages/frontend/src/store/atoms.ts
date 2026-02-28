@@ -49,7 +49,7 @@ export const defaultArticleInfo: ArticleInfoData = {
 
 // 默认的设置
 export const defaultSettings: ViteReactSettings = {
-	defaultStyle: "mweb-default",
+	defaultStyle: "mpp-default",
 	defaultHighlight: "默认",
 	defaultTemplate: "default",
 	useTemplate: false,

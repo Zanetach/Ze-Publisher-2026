@@ -77,7 +77,7 @@ export class ZePublishSettingTab extends PluginSettingTab {
 					]),
 				);
 				if (kitThemes.length === 0) {
-					const fallback = this.settings.defaultStyle || "mweb-default";
+					const fallback = this.settings.defaultStyle || "mpp-default";
 					const fallbackName =
 						themeNameMap.get(fallback) || fallback;
 					dropdown.addOption(
@@ -95,7 +95,11 @@ export class ZePublishSettingTab extends PluginSettingTab {
 						);
 					});
 					if (!kitThemes.includes(this.settings.defaultStyle)) {
-						this.settings.defaultStyle = kitThemes[0];
+						this.settings.defaultStyle = kitThemes.includes(
+							"mpp-default",
+						)
+							? "mpp-default"
+							: kitThemes[0];
 						void this.plugin.saveSettings();
 					}
 					dropdown.setValue(this.settings.defaultStyle);

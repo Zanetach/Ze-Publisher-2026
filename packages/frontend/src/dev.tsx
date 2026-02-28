@@ -196,7 +196,7 @@ if (rootElement) {
 	// Mock props for development
 	const mockProps = {
 		settings: {
-			defaultStyle: "mweb-default",
+			defaultStyle: "mpp-default",
 			defaultHighlight: "default",
 			defaultTemplate: "default",
 			useTemplate: false,
