@@ -1,6 +1,3 @@
-import themesData from "../../../assets/themes.json";
-import highlightsData from "../../../assets/highlights.json";
-
 import { logger } from "../../../shared/src/logger";
 
 export interface ThemeOption {
@@ -31,42 +28,33 @@ export interface ResourceLoader {
 class LocalResourceLoader implements ResourceLoader {
 	async loadThemes(): Promise<ThemeOption[]> {
 		try {
-			logger.debug("Loading themes from imported data");
-			logger.debug("Loaded themes:", themesData.length);
-
-			return themesData.map((theme: any) => ({
-				name: theme.name,
-				className: theme.className,
-				desc: theme.desc,
-				author: theme.author,
-			}));
+			logger.debug("Loading fallback themes");
+			return [
+				{ name: "默认主题", className: "default", desc: "Obsidian 默认阅读风格", author: "ZePublish" },
+				{ name: "微信排版", className: "wechat-classic", desc: "经典微信公众号排版", author: "ZePublish" },
+				{ name: "大字号", className: "large-text", desc: "适合无障碍阅读的大字版", author: "ZePublish" },
+			];
 		} catch (error) {
 			console.error("Failed to load themes:", error);
-			console.error("Using fallback themes");
 			return [
-				{ name: "默认主题", className: "default" },
-				{ name: "深色主题", className: "dark" },
-				{ name: "浅色主题", className: "light" },
+				{ name: "默认主题", className: "default" }
 			];
 		}
 	}
 
 	async loadHighlights(): Promise<HighlightOption[]> {
 		try {
-			logger.debug("Loading highlights from imported data");
-			logger.debug("Loaded highlights:", highlightsData.length);
-
-			return highlightsData.map((highlight: any) => ({
-				name: highlight.name,
-				url: highlight.url,
-			}));
+			logger.debug("Loading fallback highlights");
+			return [
+				{ name: "github" },
+				{ name: "vs2015" },
+				{ name: "atom-one-dark" },
+				{ name: "atom-one-light" },
+			];
 		} catch (error) {
 			console.error("Failed to load highlights:", error);
-			console.error("Using fallback highlights");
 			return [
 				{ name: "default" },
-				{ name: "github" },
-				{ name: "vscode" },
 			];
 		}
 	}
