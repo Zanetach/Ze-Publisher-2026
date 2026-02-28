@@ -145,6 +145,60 @@
 }
 
 /* ===================================
+   Shadow DOM 深色模式变量
+   当 ZePublishReact 设置 data-ui-theme="dark" 时生效
+   =================================== */
+#zepublish-shadow-mount[data-ui-theme="dark"],
+.note-preview[data-ui-theme="dark"] {
+	--radius: 0.625rem;
+	--background: #1f2023;
+	--foreground: #e5e7eb;
+	--card: #222327;
+	--card-foreground: #e5e7eb;
+	--popover: #222327;
+	--popover-foreground: #e5e7eb;
+	--primary: #4b5563;
+	--primary-foreground: #f9fafb;
+	--secondary: #2a2b30;
+	--secondary-foreground: #e5e7eb;
+	--muted: #2a2b30;
+	--muted-foreground: #9ca3af;
+	--accent: #2a2b30;
+	--accent-foreground: #e5e7eb;
+	--destructive: #ef4444;
+	--border: #3a3b40;
+	--input: #3a3b40;
+	--ring: #4b5563;
+	/* Tailwind v4 主题色映射 */
+	--color-primary: #4b5563;
+	--color-input: #3a3b40;
+	--chart-1: #3b82f6;
+	--chart-2: #14b8a6;
+	--chart-3: #f59e0b;
+	--chart-4: #8b5cf6;
+	--chart-5: #ef4444;
+	--sidebar: #222327;
+	--sidebar-foreground: #e5e7eb;
+	--sidebar-primary: #e5e7eb;
+	--sidebar-primary-foreground: #222327;
+	--sidebar-accent: #2a2b30;
+	--sidebar-accent-foreground: #e5e7eb;
+	--sidebar-border: #3a3b40;
+	--sidebar-ring: #4b5563;
+
+	/* 重置 Obsidian 变量 */
+	--background-primary: #1f2023;
+	--background-secondary: #222327;
+	--text-normal: #e5e7eb;
+	--text-muted: #9ca3af;
+	--interactive-accent: #4b5563;
+
+	/* 直接设置背景色 */
+	background-color: #1f2023;
+	color: #e5e7eb;
+}
+
+/* ===================================
    Obsidian 环境适配
    将 Obsidian 的 CSS 变量映射到我们的设计系统
    注意：由于 Shadow DOM 隔离，Obsidian 变量无法穿透
