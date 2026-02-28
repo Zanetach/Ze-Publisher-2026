@@ -24,7 +24,7 @@ export default class ZePublishPlugin extends Plugin {
 	}
 
 	async onload() {
-		logger.info("Loading Ze Publisher");
+		logger.info("Loading Ze-Publisher");
 		setVersion(this.manifest.version);
 		uevent("load");
 		await this.cleanupNestedPluginDir();
@@ -133,8 +133,8 @@ export default class ZePublishPlugin extends Plugin {
 	 */
 	onViewWidthChange(width: number): void {
 		this.currentViewWidth = width;
-		console.log(`[Ze PublisherPlugin] onViewWidthChange called: ${width}px`);
-		logger.info(`[Ze PublisherPlugin] 视图宽度已更新: ${width}px`);
+		console.log(`[Ze-PublisherPlugin] onViewWidthChange called: ${width}px`);
+		logger.info(`[Ze-PublisherPlugin] 视图宽度已更新: ${width}px`);
 
 		// 在这里可以添加自定义的宽度变化处理逻辑
 		// 例如：调整UI布局、更新设置、触发重新渲染等
@@ -159,7 +159,7 @@ export default class ZePublishPlugin extends Plugin {
 
 			if (nestedDir === activeDir) {
 				logger.warn(
-					`[Ze Publisher] 当前插件目录即嵌套目录，跳过清理: ${nestedDir}`,
+					`[Ze-Publisher] 当前插件目录即嵌套目录，跳过清理: ${nestedDir}`,
 				);
 				return;
 			}
@@ -169,12 +169,12 @@ export default class ZePublishPlugin extends Plugin {
 			}
 
 			logger.warn(
-				`[Ze Publisher] 检测到错误嵌套目录，准备清理: ${nestedDir}`,
+				`[Ze-Publisher] 检测到错误嵌套目录，准备清理: ${nestedDir}`,
 			);
 			await adapter.rmdir(nestedDir, true);
-			logger.info(`[Ze Publisher] 已清理错误嵌套目录: ${nestedDir}`);
+			logger.info(`[Ze-Publisher] 已清理错误嵌套目录: ${nestedDir}`);
 		} catch (error) {
-			logger.warn("[Ze Publisher] 清理错误嵌套目录失败:", error);
+			logger.warn("[Ze-Publisher] 清理错误嵌套目录失败:", error);
 		}
 	}
 }

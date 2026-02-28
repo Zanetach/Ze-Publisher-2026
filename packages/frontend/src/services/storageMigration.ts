@@ -38,6 +38,6 @@ export function migrateLegacyStorageKeys(): void {
 
 		localStorage.setItem(MIGRATION_MARKER, "1");
 	} catch (error) {
-		console.warn("[Ze Publisher] Failed to migrate legacy localStorage keys:", error);
+		console.warn("[Ze-Publisher] Failed to migrate legacy localStorage keys:", error);
 	}
 }

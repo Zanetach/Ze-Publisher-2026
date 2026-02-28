@@ -209,7 +209,7 @@ if (rootElement) {
 			expandedAccordionSections: [],
 			showStyleUI: true,
 			personalInfo: {
-				name: "Ze Publisher Web",
+				name: "Ze-Publisher Web",
 				avatar: { type: "default" as const },
 				bio: "基于 Web 的 Markdown 格式化工具",
 				email: "",
@@ -218,7 +218,7 @@ if (rootElement) {
 		},
 		articleHTML: `
       <div class="zepublish">
-        <h1>欢迎使用 Ze Publisher Web 版</h1>
+        <h1>欢迎使用 Ze-Publisher Web 版</h1>
         <p>这是一个独立的 Web 应用，可以将 Markdown 格式化并分发到多个平台。</p>
         <h2>主要功能</h2>
         <ul>
@@ -227,7 +227,7 @@ if (rootElement) {
           <li>多平台分发</li>
         </ul>
         <h2>代码示例</h2>
-        <pre><code class="language-javascript">console.log('Hello, Ze Publisher!');</code></pre>
+        <pre><code class="language-javascript">console.log('Hello, Ze-Publisher!');</code></pre>
       </div>
     `,
 		cssContent: "body { font-family: system-ui; padding: 20px; }",

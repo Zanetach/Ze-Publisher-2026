@@ -13,7 +13,7 @@ import {CoverData} from "@/components/toolbar/CoverData";
 import {logger} from "../../../../shared/src/logger";
 import {FileText, Package, Plug, Zap, User, Bot, Globe, Image, Palette, Cloud, Eye, EyeOff, AlertCircle, ChevronDown, CheckCircle2, XCircle, Loader2, Upload, Trash2, Copy, ExternalLink, ImagePlus, Heading1, PanelLeftClose} from "lucide-react";
 
-const APP_NAME = "Ze Publisher";
+const APP_NAME = "Ze-Publisher";
 const LOGO_TEXT = "ZP";
 
 // 七牛云区域配置

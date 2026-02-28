@@ -589,7 +589,7 @@ async function analyzeWithOpenRouter(
 			'Authorization': `Bearer ${settings.openRouterApiKey}`,
 			'Content-Type': 'application/json',
 			'HTTP-Referer': 'https://obsidian.md',
-			'X-Title': 'Ze Publisher Obsidian Plugin'
+			'X-Title': 'Ze-Publisher Obsidian Plugin'
 		},
 		body: JSON.stringify({
 			model: settings.openRouterModel,
@@ -866,7 +866,7 @@ async function testOpenRouterConnection(settings: ViteReactSettings): Promise<vo
 			'Authorization': `Bearer ${settings.openRouterApiKey}`,
 			'Content-Type': 'application/json',
 			'HTTP-Referer': 'https://obsidian.md',
-			'X-Title': 'Ze Publisher Obsidian Plugin'
+			'X-Title': 'Ze-Publisher Obsidian Plugin'
 		},
 		body: JSON.stringify({
 			model: settings.openRouterModel,
