@@ -1,5 +1,4 @@
 import React, {useEffect, useState} from "react";
-import packageJson from "../../../package.json";
 import {TemplateKitSelector} from "./TemplateKitSelector";
 import {CoverDesigner} from "./CoverDesigner";
 import {LogsPanel} from "./LogsPanel";
@@ -12,15 +11,10 @@ import {AISettings} from "../settings/AISettings";
 import {PersonalInfo, UnifiedPluginData, ViteReactSettings, CloudStorageSettings, defaultCloudStorageSettings, UploadedImage} from "../../types";
 import {CoverData} from "@/components/toolbar/CoverData";
 import {logger} from "../../../../shared/src/logger";
-import {FileText, Package, Plug, Zap, User, Bot, Globe, PanelLeft, PanelRight, Image, Palette, Menu, ChevronsLeft, Cloud, Eye, EyeOff, AlertCircle, ChevronDown, CheckCircle2, XCircle, Loader2, Upload, Trash2, Copy, ExternalLink, ImagePlus, Heading1} from "lucide-react";
+import {FileText, Package, Plug, Zap, User, Bot, Globe, Image, Palette, Cloud, Eye, EyeOff, AlertCircle, ChevronDown, CheckCircle2, XCircle, Loader2, Upload, Trash2, Copy, ExternalLink, ImagePlus, Heading1, PanelLeftClose} from "lucide-react";
 
-const LovpenLogo: React.FC<{className?: string}> = ({className}) => (
-	<svg viewBox="-127 -80 1240 1240" className={className} fill="currentColor">
-		<path d="M281.73,892.18V281.73C281.73,126.13,155.6,0,0,0l0,0v610.44C0,766.04,126.13,892.18,281.73,892.18z"/>
-		<path d="M633.91,1080V469.56c0-155.6-126.13-281.73-281.73-281.73l0,0v610.44C352.14,953.87,478.31,1080,633.91,1080L633.91,1080z"/>
-		<path d="M704.32,91.16L704.32,91.16v563.47l0,0c155.6,0,281.73-126.13,281.73-281.73S859.92,91.16,704.32,91.16z"/>
-	</svg>
-);
+const APP_NAME = "Ze Publisher";
+const LOGO_TEXT = "ZP";
 
 // 七牛云区域配置
 const QINIU_REGIONS: Array<{
@@ -77,7 +71,7 @@ const CloudStorageSettingsSection: React.FC<{
 			domain = domain.replace(/\/$/, '');
 
 			// 使用 Obsidian 的 requestUrl API（如果可用）或 fetch
-			const requestUrl = window.lovpenReactAPI?.requestUrl;
+			const requestUrl = (window as any).zepublishReactAPI?.requestUrl;
 
 			if (requestUrl) {
 				// Obsidian 环境 - 使用 GET 请求测试
@@ -114,11 +108,11 @@ const CloudStorageSettingsSection: React.FC<{
 
 	return (
 		<div className="space-y-3">
-			<p className="text-xs text-[#87867F] uppercase tracking-wide px-1">云存储</p>
-			<div className="bg-white rounded-xl border border-[#E8E6DC] overflow-hidden">
+			<p className="text-xs text-[#6B7280] uppercase tracking-wide px-1">云存储</p>
+			<div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
 				{/* 标题栏 - 点击展开/收起 */}
 				<div
-					className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-[#F9F9F7] select-none"
+					className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-[#FAFAFA] select-none"
 					onClick={() => setExpanded(!expanded)}
 				>
 					<div className="flex items-center gap-3">
@@ -126,8 +120,8 @@ const CloudStorageSettingsSection: React.FC<{
 							<Cloud className="h-4 w-4 text-white"/>
 						</div>
 						<div>
-							<span className="text-[#181818] text-sm block">七牛云存储</span>
-							<span className="text-[#87867F] text-xs">
+							<span className="text-[#111827] text-sm block">七牛云存储</span>
+							<span className="text-[#6B7280] text-xs">
 								{cloudSettings.enabled && isConfigComplete ? '已启用' : cloudSettings.enabled ? '配置不完整' : '点击配置'}
 							</span>
 						</div>
@@ -146,14 +140,14 @@ const CloudStorageSettingsSection: React.FC<{
 							onClick={(e) => e.stopPropagation()}
 						/>
 						<ChevronDown
-							className={`h-4 w-4 text-[#87867F] transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+							className={`h-4 w-4 text-[#6B7280] transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
 						/>
 					</div>
 				</div>
 
 				{/* 展开配置区域 */}
 				{expanded && (
-					<div className="border-t border-[#E8E6DC] p-4 space-y-4 bg-[#F9F9F7]/50">
+					<div className="border-t border-[#E5E7EB] p-4 space-y-4 bg-[#FAFAFA]/50">
 						{/* 配置不完整警告 */}
 						{cloudSettings.enabled && !isConfigComplete && (
 							<div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
@@ -166,70 +160,70 @@ const CloudStorageSettingsSection: React.FC<{
 
 						{/* Access Key */}
 						<div>
-							<label className="block text-xs font-medium text-[#181818] mb-1.5">Access Key</label>
+							<label className="block text-xs font-medium text-[#111827] mb-1.5">Access Key</label>
 							<input
 								type="text"
 								value={cloudSettings.qiniu.accessKey}
 								onChange={(e) => updateQiniuField('accessKey', e.target.value)}
 								placeholder="七牛 Access Key"
-								className="w-full px-3 py-2 bg-white border border-[#E8E6DC] rounded-lg text-sm text-[#181818] placeholder:text-[#87867F]/50 focus:outline-none focus:border-[#D97757] focus:ring-1 focus:ring-[#D97757]"
+								className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-[#111827] placeholder:text-[#6B7280]/50 focus:outline-none focus:border-[#4B5563] focus:ring-1 focus:ring-[#4B5563]"
 							/>
 						</div>
 
 						{/* Secret Key */}
 						<div>
-							<label className="block text-xs font-medium text-[#181818] mb-1.5">Secret Key</label>
+							<label className="block text-xs font-medium text-[#111827] mb-1.5">Secret Key</label>
 							<div className="relative">
 								<input
 									type={showSecretKey ? 'text' : 'password'}
 									value={cloudSettings.qiniu.secretKey}
 									onChange={(e) => updateQiniuField('secretKey', e.target.value)}
 									placeholder="七牛 Secret Key"
-									className="w-full px-3 py-2 pr-10 bg-white border border-[#E8E6DC] rounded-lg text-sm text-[#181818] placeholder:text-[#87867F]/50 focus:outline-none focus:border-[#D97757] focus:ring-1 focus:ring-[#D97757]"
+									className="w-full px-3 py-2 pr-10 bg-white border border-[#E5E7EB] rounded-lg text-sm text-[#111827] placeholder:text-[#6B7280]/50 focus:outline-none focus:border-[#4B5563] focus:ring-1 focus:ring-[#4B5563]"
 								/>
 								<button
 									type="button"
 									onClick={() => setShowSecretKey(!showSecretKey)}
-									className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#87867F] hover:text-[#181818] transition-colors"
+									className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#6B7280] hover:text-[#111827] transition-colors"
 								>
 									{showSecretKey ? <EyeOff className="h-4 w-4"/> : <Eye className="h-4 w-4"/>}
 								</button>
 							</div>
-							<p className="mt-1 text-[10px] text-[#87867F]">Secret Key 仅存储在本地</p>
+							<p className="mt-1 text-[10px] text-[#6B7280]">Secret Key 仅存储在本地</p>
 						</div>
 
 						{/* Bucket */}
 						<div>
-							<label className="block text-xs font-medium text-[#181818] mb-1.5">Bucket 名称</label>
+							<label className="block text-xs font-medium text-[#111827] mb-1.5">Bucket 名称</label>
 							<input
 								type="text"
 								value={cloudSettings.qiniu.bucket}
 								onChange={(e) => updateQiniuField('bucket', e.target.value)}
 								placeholder="存储空间名称"
-								className="w-full px-3 py-2 bg-white border border-[#E8E6DC] rounded-lg text-sm text-[#181818] placeholder:text-[#87867F]/50 focus:outline-none focus:border-[#D97757] focus:ring-1 focus:ring-[#D97757]"
+								className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-[#111827] placeholder:text-[#6B7280]/50 focus:outline-none focus:border-[#4B5563] focus:ring-1 focus:ring-[#4B5563]"
 							/>
 						</div>
 
 						{/* Domain */}
 						<div>
-							<label className="block text-xs font-medium text-[#181818] mb-1.5">CDN 域名</label>
+							<label className="block text-xs font-medium text-[#111827] mb-1.5">CDN 域名</label>
 							<input
 								type="text"
 								value={cloudSettings.qiniu.domain}
 								onChange={(e) => updateQiniuField('domain', e.target.value)}
 								placeholder="https://cdn.example.com"
-								className="w-full px-3 py-2 bg-white border border-[#E8E6DC] rounded-lg text-sm text-[#181818] placeholder:text-[#87867F]/50 focus:outline-none focus:border-[#D97757] focus:ring-1 focus:ring-[#D97757]"
+								className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-[#111827] placeholder:text-[#6B7280]/50 focus:outline-none focus:border-[#4B5563] focus:ring-1 focus:ring-[#4B5563]"
 							/>
-							<p className="mt-1 text-[10px] text-[#87867F]">七牛控制台 → 存储空间 → 域名管理</p>
+							<p className="mt-1 text-[10px] text-[#6B7280]">七牛控制台 → 存储空间 → 域名管理</p>
 						</div>
 
 						{/* Region */}
 						<div>
-							<label className="block text-xs font-medium text-[#181818] mb-1.5">存储区域</label>
+							<label className="block text-xs font-medium text-[#111827] mb-1.5">存储区域</label>
 							<select
 								value={cloudSettings.qiniu.region}
 								onChange={(e) => updateQiniuField('region', e.target.value)}
-								className="w-full px-3 py-2 bg-white border border-[#E8E6DC] rounded-lg text-sm text-[#181818] focus:outline-none focus:border-[#D97757] focus:ring-1 focus:ring-[#D97757] cursor-pointer"
+								className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-[#111827] focus:outline-none focus:border-[#4B5563] focus:ring-1 focus:ring-[#4B5563] cursor-pointer"
 							>
 								{QINIU_REGIONS.map((region) => (
 									<option key={region.value} value={region.value}>
@@ -240,20 +234,20 @@ const CloudStorageSettingsSection: React.FC<{
 						</div>
 
 						{/* 测试按钮 */}
-						<div className="pt-2 border-t border-[#E8E6DC]">
+						<div className="pt-2 border-t border-[#E5E7EB]">
 							<button
 								onClick={testConnection}
 								disabled={testStatus === 'testing' || !isConfigComplete}
 								className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
 									testStatus === 'testing'
-										? 'bg-[#E8E6DC] text-[#87867F] cursor-wait'
+										? 'bg-[#E5E7EB] text-[#6B7280] cursor-wait'
 										: testStatus === 'success'
 										? 'bg-green-50 text-green-700 border border-green-200'
 										: testStatus === 'error'
 										? 'bg-red-50 text-red-700 border border-red-200'
 										: isConfigComplete
-										? 'bg-[#D97757] text-white hover:bg-[#C96747]'
-										: 'bg-[#E8E6DC] text-[#87867F] cursor-not-allowed'
+										? 'bg-[#4B5563] text-white hover:bg-[#374151]'
+										: 'bg-[#E5E7EB] text-[#6B7280] cursor-not-allowed'
 								}`}
 							>
 								{testStatus === 'testing' ? (
@@ -279,17 +273,17 @@ const CloudStorageSettingsSection: React.FC<{
 								)}
 							</button>
 							{!isConfigComplete && testStatus === 'idle' && (
-								<p className="mt-2 text-[10px] text-[#87867F] text-center">
+								<p className="mt-2 text-[10px] text-[#6B7280] text-center">
 									请填写所有必填项后测试
 								</p>
 							)}
 						</div>
+							</div>
+						)}
 					</div>
-				)}
-			</div>
-		</div>
-	);
-};
+				</div>
+		);
+	};
 
 // 七牛云上传区域配置
 const QINIU_UPLOAD_HOSTS: Record<CloudStorageSettings['qiniu']['region'], string> = {
@@ -301,7 +295,7 @@ const QINIU_UPLOAD_HOSTS: Record<CloudStorageSettings['qiniu']['region'], string
 };
 
 // 本地存储键名
-const UPLOADED_IMAGES_STORAGE_KEY = 'lovpen-uploaded-images';
+const UPLOADED_IMAGES_STORAGE_KEY = 'zepublish-uploaded-images';
 
 // 获取已上传图片列表
 const getUploadedImages = (): UploadedImage[] => {
@@ -323,7 +317,7 @@ const generateFileKey = (file: File): string => {
 	const ext = file.name.split('.').pop() || 'jpg';
 	const timestamp = Date.now();
 	const random = Math.random().toString(36).substring(2, 8);
-	return `lovpen/${timestamp}-${random}.${ext}`;
+	return `zepublish/${timestamp}-${random}.${ext}`;
 };
 
 // Base64 URL 编码
@@ -384,10 +378,10 @@ const CloudStoragePanelContent: React.FC<{
 			setUploadedImages(getUploadedImages());
 		};
 		window.addEventListener('storage', handleStorageChange);
-		window.addEventListener('lovpen-images-updated', handleStorageChange);
+		window.addEventListener('zepublish-images-updated', handleStorageChange);
 		return () => {
 			window.removeEventListener('storage', handleStorageChange);
-			window.removeEventListener('lovpen-images-updated', handleStorageChange);
+			window.removeEventListener('zepublish-images-updated', handleStorageChange);
 		};
 	}, []);
 
@@ -520,12 +514,12 @@ const CloudStoragePanelContent: React.FC<{
 			{/* 上传区域 */}
 			{isConfigComplete && (
 				<div className="space-y-3">
-					<p className="text-xs text-[#87867F] uppercase tracking-wide px-1">上传图片</p>
+					<p className="text-xs text-[#6B7280] uppercase tracking-wide px-1">上传图片</p>
 					<div
 						className={`relative border-2 border-dashed rounded-xl p-6 transition-all cursor-pointer ${
 							dragOver
-								? 'border-[#D97757] bg-[#D97757]/5'
-								: 'border-[#E8E6DC] hover:border-[#D97757]/50 bg-white'
+								? 'border-[#4B5563] bg-[#4B5563]/5'
+								: 'border-[#E5E7EB] hover:border-[#4B5563]/50 bg-white'
 						}`}
 						onDragOver={(e) => {e.preventDefault(); setDragOver(true);}}
 						onDragLeave={() => setDragOver(false)}
@@ -547,14 +541,14 @@ const CloudStoragePanelContent: React.FC<{
 						<div className="flex flex-col items-center gap-2">
 							{uploading ? (
 								<>
-									<Loader2 className="h-8 w-8 text-[#D97757] animate-spin"/>
-									<p className="text-sm text-[#181818]">上传中 {uploadProgress}%</p>
+									<Loader2 className="h-8 w-8 text-[#4B5563] animate-spin"/>
+									<p className="text-sm text-[#111827]">上传中 {uploadProgress}%</p>
 								</>
 							) : (
 								<>
-									<ImagePlus className="h-8 w-8 text-[#87867F]"/>
-									<p className="text-sm text-[#181818]">点击或拖拽图片到这里</p>
-									<p className="text-xs text-[#87867F]">支持 JPG、PNG、GIF 等格式</p>
+									<ImagePlus className="h-8 w-8 text-[#6B7280]"/>
+									<p className="text-sm text-[#111827]">点击或拖拽图片到这里</p>
+									<p className="text-xs text-[#6B7280]">支持 JPG、PNG、GIF 等格式</p>
 								</>
 							)}
 						</div>
@@ -566,7 +560,7 @@ const CloudStoragePanelContent: React.FC<{
 			{uploadedImages.length > 0 && (
 				<div className="space-y-3">
 					<div className="flex items-center justify-between px-1">
-						<p className="text-xs text-[#87867F] uppercase tracking-wide">已上传 ({uploadedImages.length})</p>
+						<p className="text-xs text-[#6B7280] uppercase tracking-wide">已上传 ({uploadedImages.length})</p>
 						<button
 							onClick={() => {
 								if (confirm('确定清空所有上传记录吗？')) {
@@ -574,30 +568,30 @@ const CloudStoragePanelContent: React.FC<{
 									saveUploadedImages([]);
 								}
 							}}
-							className="text-xs text-[#87867F] hover:text-red-500 transition-colors"
+							className="text-xs text-[#6B7280] hover:text-red-500 transition-colors"
 						>
 							清空
 						</button>
 					</div>
-					<div className="bg-white rounded-xl border border-[#E8E6DC] overflow-hidden">
-						<div className="divide-y divide-[#E8E6DC] max-h-[300px] overflow-y-auto">
+					<div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
+						<div className="divide-y divide-[#E5E7EB] max-h-[300px] overflow-y-auto">
 							{uploadedImages.map((img) => (
-								<div key={img.id} className="flex items-center gap-3 p-3 hover:bg-[#F9F9F7]">
+								<div key={img.id} className="flex items-center gap-3 p-3 hover:bg-[#FAFAFA]">
 									<img
 										src={img.url}
 										alt={img.name}
 										className="w-12 h-12 object-cover rounded-lg flex-shrink-0"
 									/>
 									<div className="flex-1 min-w-0">
-										<p className="text-sm text-[#181818] truncate">{img.name}</p>
-										<p className="text-xs text-[#87867F]">
+										<p className="text-sm text-[#111827] truncate">{img.name}</p>
+										<p className="text-xs text-[#6B7280]">
 											{formatSize(img.size)} · {formatDate(img.uploadedAt)}
 										</p>
 									</div>
 									<div className="flex items-center gap-1">
 										<button
 											onClick={() => handleCopyUrl(img.url)}
-											className="p-1.5 rounded-md text-[#87867F] hover:bg-[#E8E6DC] hover:text-[#181818] transition-all"
+											className="p-1.5 rounded-md text-[#6B7280] hover:bg-[#E5E7EB] hover:text-[#111827] transition-all"
 											title="复制链接"
 										>
 											<Copy className="h-4 w-4"/>
@@ -606,14 +600,14 @@ const CloudStoragePanelContent: React.FC<{
 											href={img.url}
 											target="_blank"
 											rel="noopener noreferrer"
-											className="p-1.5 rounded-md text-[#87867F] hover:bg-[#E8E6DC] hover:text-[#181818] transition-all"
+											className="p-1.5 rounded-md text-[#6B7280] hover:bg-[#E5E7EB] hover:text-[#111827] transition-all"
 											title="打开"
 										>
 											<ExternalLink className="h-4 w-4"/>
 										</a>
 										<button
 											onClick={() => handleDelete(img.id)}
-											className="p-1.5 rounded-md text-[#87867F] hover:bg-red-50 hover:text-red-500 transition-all"
+											className="p-1.5 rounded-md text-[#6B7280] hover:bg-red-50 hover:text-red-500 transition-all"
 											title="删除"
 										>
 											<Trash2 className="h-4 w-4"/>
@@ -649,19 +643,29 @@ const SectionLayout: React.FC<{
 	title: string;
 	children: React.ReactNode;
 	withCard?: boolean;
-}> = ({ title, children, withCard = true }) => (
+	isDark?: boolean;
+	collapsed?: boolean;
+}> = ({ title, children, withCard = true, isDark = false, collapsed = false }) => (
 	<div className="space-y-4">
-		<h3 className="text-lg font-semibold text-[#181818]">{title}</h3>
-		{withCard ? (
-			<div className="bg-white rounded-xl border border-[#E8E6DC] p-4 shadow-sm">
-				{children}
-			</div>
-		) : children}
+		<div className="flex items-center justify-between">
+			<h3 className={`text-lg font-semibold ${isDark ? 'text-[#E5E7EB]' : 'text-[#111827]'}`}>{title}</h3>
+			{collapsed && (
+				<span className={`text-xs ${isDark ? 'text-[#94A3B8]' : 'text-[#6B7280]'}`}>已折叠</span>
+			)}
+		</div>
+		{!collapsed && (
+			withCard ? (
+				<div className={`rounded-xl border p-4 shadow-sm ${isDark ? 'bg-[#222327] border-[#3A3B40]' : 'bg-white border-[#E5E7EB]'}`}>
+					{children}
+				</div>
+			) : children
+		)}
 	</div>
 );
 
 interface ToolbarProps {
 	settings: ViteReactSettings;
+	isUIDark?: boolean;
 	plugins: UnifiedPluginData[];
 	articleHTML: string;
 	onTemplateChange: (template: string) => void;
@@ -679,10 +683,13 @@ interface ToolbarProps {
 	onKitApply?: (kitId: string) => void;
 	onKitCreate?: (basicInfo: any) => void;
 	onKitDelete?: (kitId: string) => void;
+	isContentCollapsed?: boolean;
+	onToggleToolbar?: () => void;
 }
 
 export const Toolbar: React.FC<ToolbarProps> = ({
 													settings,
+													isUIDark = false,
 													plugins,
 													articleHTML,
 													onTemplateChange,
@@ -700,6 +707,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 													onKitApply,
 													onKitCreate,
 													onKitDelete,
+													isContentCollapsed = false,
+													onToggleToolbar,
 												}) => {
 
 	// 使用 useSettings hook 获取设置更新方法
@@ -709,7 +718,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 	type NavSection = 'article' | 'cover' | 'kits' | 'plugins' | 'playground' | 'logs' | 'cloud' | 'personal' | 'ai' | 'general';
 	const [activeSection, setActiveSection] = useState<NavSection>(() => {
 		try {
-			const saved = localStorage.getItem('lovpen-toolbar-section') as NavSection;
+			const saved = localStorage.getItem('zepublish-toolbar-section') as NavSection;
 			return saved || 'article';
 		} catch {
 			return 'article';
@@ -717,51 +726,26 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 	});
 
 	const handleSectionChange = (section: NavSection) => {
+		if (isContentCollapsed) {
+			onToggleToolbar?.();
+		}
 		setActiveSection(section);
 		try {
-			localStorage.setItem('lovpen-toolbar-section', section);
+			localStorage.setItem('zepublish-toolbar-section', section);
 		} catch {}
 	};
-
-	// 侧边栏展开/收起状态
-	const [sidebarExpanded, setSidebarExpanded] = useState<boolean>(() => {
-		try {
-			const saved = localStorage.getItem('lovpen-sidebar-expanded');
-			return saved !== 'false'; // 默认展开
-		} catch {
-			return true;
+	const showStyleUI = atomSettings.showStyleUI !== false;
+	useEffect(() => {
+		if (!showStyleUI && activeSection === "kits") {
+			handleSectionChange("article");
 		}
-	});
-
-	const toggleSidebar = () => {
-		const newValue = !sidebarExpanded;
-		setSidebarExpanded(newValue);
-		try {
-			localStorage.setItem('lovpen-sidebar-expanded', String(newValue));
-		} catch {}
-	};
-
-	// 内容区显示/隐藏状态
-	const [contentHidden, setContentHidden] = useState<boolean>(() => {
-		try {
-			return localStorage.getItem('lovpen-content-hidden') === 'true';
-		} catch {
-			return false;
-		}
-	});
-
-	const toggleContent = () => {
-		const newValue = !contentHidden;
-		setContentHidden(newValue);
-		try {
-			localStorage.setItem('lovpen-content-hidden', String(newValue));
-		} catch {}
-	};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [showStyleUI, activeSection]);
 
 	// 插件管理中的子tab状态
 	const [pluginTab, setPluginTab] = useState<string>(() => {
 		try {
-			const saved = localStorage.getItem('lovpen-toolbar-plugin-tab');
+			const saved = localStorage.getItem('zepublish-toolbar-plugin-tab');
 			if (saved) return saved;
 		} catch {}
 		return plugins.some(p => p.type === 'rehype') ? 'rehype' : 'remark';
@@ -772,7 +756,32 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 		settings.expandedAccordionSections || []
 	);
 
+	// 通用开关的本地状态，避免“更新+立即保存”导致的回弹
+	const [scaleCodeBlockEnabled, setScaleCodeBlockEnabled] = useState<boolean>(atomSettings.scaleCodeBlockInImage ?? true);
+	const [hideFirstHeadingEnabled, setHideFirstHeadingEnabled] = useState<boolean>(atomSettings.hideFirstHeading ?? false);
+	const [showCoverEnabled, setShowCoverEnabled] = useState<boolean>(atomSettings.showCoverInArticle ?? true);
+	const [imageSaveFolderEnabled, setImageSaveFolderEnabled] = useState<boolean>(atomSettings.imageSaveFolderEnabled ?? true);
 
+	useEffect(() => {
+		setScaleCodeBlockEnabled(atomSettings.scaleCodeBlockInImage ?? true);
+	}, [atomSettings.scaleCodeBlockInImage]);
+
+	useEffect(() => {
+		setHideFirstHeadingEnabled(atomSettings.hideFirstHeading ?? false);
+	}, [atomSettings.hideFirstHeading]);
+
+	useEffect(() => {
+		setShowCoverEnabled(atomSettings.showCoverInArticle ?? true);
+	}, [atomSettings.showCoverInArticle]);
+
+	useEffect(() => {
+		setImageSaveFolderEnabled(atomSettings.imageSaveFolderEnabled ?? true);
+	}, [atomSettings.imageSaveFolderEnabled]);
+
+	const persistSettingChange = (next: Partial<ViteReactSettings>) => {
+		updateSettings(next);
+		requestAnimationFrame(() => saveSettings());
+	};
 
 	// 同步插件展开状态
 	useEffect(() => {
@@ -825,10 +834,11 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 	const getImageArrayBuffer = async (imageUrl: string): Promise<ArrayBuffer> => {
 		if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
 			// HTTP/HTTPS URL - 使用Obsidian的requestUrl API
-			if (!window.lovpenReactAPI || typeof window.lovpenReactAPI.requestUrl === 'undefined') {
+			const globalAPI = (window as any).zepublishReactAPI;
+			if (!globalAPI || typeof globalAPI.requestUrl === 'undefined') {
 				throw new Error('此功能仅在Obsidian环境中可用');
 			}
-			const requestUrl = window.lovpenReactAPI.requestUrl;
+			const requestUrl = globalAPI.requestUrl;
 			const response = await requestUrl({url: imageUrl, method: 'GET'});
 			return response.arrayBuffer;
 		} else if (imageUrl.startsWith('blob:') || imageUrl.startsWith('data:')) {
@@ -857,7 +867,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 				try {
 					const arrayBuffer = await getImageArrayBuffer(cover.imageUrl);
 					const aspectStr = cover.aspectRatio.replace(':', '-').replace('.', '_');
-					const fileName = `lovpen-cover-${index + 1}-${aspectStr}.jpg`;
+					const fileName = `zepublish-cover-${index + 1}-${aspectStr}.jpg`;
 					zip.file(fileName, arrayBuffer);
 					fileCount++;
 				} catch (error) {
@@ -870,7 +880,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 				try {
 					const combinedBlob = await createCombinedCoverBlob(cover1, cover2);
 					const arrayBuffer = await combinedBlob.arrayBuffer();
-					const fileName = 'lovpen-cover-combined-3_25_1.jpg';
+					const fileName = 'zepublish-cover-combined-3_25_1.jpg';
 					zip.file(fileName, arrayBuffer);
 					fileCount++;
 				} catch (error) {
@@ -890,7 +900,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 			const url = URL.createObjectURL(zipBlob);
 			const a = document.createElement('a');
 			a.href = url;
-			a.download = `lovpen-covers-${Date.now()}.zip`;
+			a.download = `zepublish-covers-${Date.now()}.zip`;
 			a.style.display = 'none';
 
 			document.body.appendChild(a);
@@ -978,82 +988,93 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
 	// 导航菜单配置
 	const navItems: {key: typeof activeSection; label: string; icon: React.ElementType; color: string; group: 'content' | 'settings'}[] = [
-		{key: 'article', label: '文章信息', icon: FileText, color: 'from-[#CC785C] to-[#B86A4E]', group: 'content'},
-		{key: 'cover', label: '封面设计', icon: Palette, color: 'from-[#B49FD8] to-[#8B7CB8]', group: 'content'},
-		{key: 'kits', label: '模板套装', icon: Package, color: 'from-[#629A90] to-[#4A7A70]', group: 'content'},
-		{key: 'plugins', label: '插件管理', icon: Plug, color: 'from-[#97B5D5] to-[#7095B5]', group: 'content'},
-		{key: 'playground', label: '实验室', icon: ImagePlus, color: 'from-[#E8A87C] to-[#C8885C]', group: 'content'},
-		{key: 'logs', label: 'AI 日志', icon: FileText, color: 'from-[#87867F] to-[#6A6A63]', group: 'content'},
-		{key: 'cloud', label: '云存储', icon: Cloud, color: 'from-[#97B5D5] to-[#7095B5]', group: 'settings'},
-		{key: 'personal', label: '个人信息', icon: User, color: 'from-[#C2C07D] to-[#A2A05D]', group: 'settings'},
-		{key: 'ai', label: 'AI 设置', icon: Bot, color: 'from-[#CC785C] to-[#AC583C]', group: 'settings'},
-		{key: 'general', label: '通用', icon: Globe, color: 'from-[#87867F] to-[#6A6A63]', group: 'settings'},
+		{key: 'article', label: '文章信息', icon: FileText, color: 'from-[#9CA3AF] to-[#6B7280]', group: 'content'},
+		{key: 'cover', label: '封面设计', icon: Palette, color: 'from-[#9CA3AF] to-[#6B7280]', group: 'content'},
+		...(showStyleUI ? [{key: 'kits' as const, label: '模板套装', icon: Package, color: 'from-[#9CA3AF] to-[#6B7280]', group: 'content' as const}] : []),
+		{key: 'plugins', label: '插件管理', icon: Plug, color: 'from-[#9CA3AF] to-[#6B7280]', group: 'content'},
+		{key: 'playground', label: '生图', icon: ImagePlus, color: 'from-[#9CA3AF] to-[#6B7280]', group: 'content'},
+		{key: 'logs', label: 'AI 日志', icon: FileText, color: 'from-[#9CA3AF] to-[#6B7280]', group: 'content'},
+		{key: 'cloud', label: '云存储', icon: Cloud, color: 'from-[#9CA3AF] to-[#6B7280]', group: 'settings'},
+		{key: 'personal', label: '个人信息', icon: User, color: 'from-[#9CA3AF] to-[#6B7280]', group: 'settings'},
+		{key: 'ai', label: 'AI 设置', icon: Bot, color: 'from-[#9CA3AF] to-[#6B7280]', group: 'settings'},
+		{key: 'general', label: '通用', icon: Globe, color: 'from-[#9CA3AF] to-[#6B7280]', group: 'settings'},
 	];
 
 	try {
 		return (
 			<div
-				id="lovpen-toolbar-container"
-				className="h-full flex bg-[#F9F9F7] relative"
+				id="zepublish-toolbar-container"
+				data-ui-dark={isUIDark ? "true" : "false"}
+				className={`h-full flex relative ${isUIDark ? 'bg-[#1F2023]' : 'bg-[#FAFAFA]'}`}
 				style={{
-					minWidth: '328px',
+					minWidth: '0',
 					width: '100%',
 					maxWidth: '100%',
 					overflow: 'hidden',
 					boxSizing: 'border-box'
 				}}>
-				{/* 左侧导航栏 - macOS 系统偏好设置风格 */}
+				{/* 左侧导航栏 - 图标模式 */}
 				<div
-					className="bg-[#F0EEE6]/80 backdrop-blur-xl border-r border-[#E8E6DC] flex flex-col flex-shrink-0 transition-[width] duration-200 overflow-hidden"
-					style={{ width: sidebarExpanded ? 160 : 44 }}
+					className={`backdrop-blur-xl border-r flex flex-col flex-shrink-0 overflow-hidden ${
+						isUIDark ? 'bg-[#222327] border-[#3A3B40]' : 'bg-[#F3F4F6]/90 border-[#E5E7EB]'
+					}`}
+					style={{ width: 56 }}
 				>
 					{/* 顶部品牌区域 */}
 					<div
-						onClick={toggleSidebar}
-						className="h-10 border-b border-[#E8E6DC] flex items-center cursor-pointer hover:bg-[#E8E6DC]/80"
-						title={sidebarExpanded ? "收起菜单" : "展开菜单"}
+						className={`h-12 border-b flex items-center justify-center ${
+							isUIDark ? 'border-[#3A3B40]' : 'border-[#E5E7EB]'
+						}`}
 					>
-						<div className="w-[44px] h-10 flex items-center justify-center flex-shrink-0">
-							<LovpenLogo className="w-6 h-6 text-[#D97757] hover:scale-105 transition-transform"/>
+						<div
+							title={APP_NAME}
+							className={`w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-semibold tracking-wide ${
+								isUIDark ? 'text-[#E5E7EB]' : 'text-[#374151]'
+							}`}
+						>
+							{LOGO_TEXT}
 						</div>
-						<div className="flex-1 flex items-center justify-between pr-2 overflow-hidden">
-							<span className="text-sm font-semibold text-[#3d3d3d] whitespace-nowrap">Lovpen</span>
-							<div className="p-1 text-[#87867F]">
-								<ChevronsLeft className="h-4 w-4"/>
-							</div>
-						</div>
+					</div>
+					<div
+						className={`h-10 border-b flex items-center justify-center ${
+							isUIDark ? 'border-[#3A3B40]' : 'border-[#E5E7EB]'
+						}`}
+					>
+						<button
+							onClick={() => onToggleToolbar?.()}
+							title={isContentCollapsed ? "展开配置栏" : "收起配置栏"}
+							className={`w-7 h-7 inline-flex items-center justify-center rounded-md border ${
+								isUIDark
+									? 'border-[#3A3B40] text-[#CBD5E1] hover:bg-[#2A2B30]'
+									: 'border-[#E5E7EB] text-[#374151] hover:bg-[#F3F4F6]'
+							}`}
+						>
+							<PanelLeftClose
+								className={`h-4 w-4 transition-transform ${
+									isContentCollapsed ? 'rotate-180' : ''
+								}`}
+							/>
+						</button>
 					</div>
 
 					<div className="flex-1 overflow-y-auto py-2 px-1.5">
-						{/* 内容分组 */}
 						<div className="mb-3">
-							<div className="h-4 mb-1.5 overflow-hidden">
-								<p className="text-[10px] text-[#87867F] uppercase tracking-wider font-medium whitespace-nowrap px-1.5">内容</p>
-							</div>
 							<nav className="space-y-1">
-								{navItems.filter(item => item.group === 'content').map(({key, label, icon: Icon, color}) => (
+								{navItems.filter(item => item.group === 'content').map(({key, label, icon: Icon}) => (
 									<button
 										key={key}
 										onClick={() => handleSectionChange(key)}
-										title={!sidebarExpanded ? label : undefined}
-										className={`w-full flex items-center h-9 gap-2 px-1.5 rounded-md transition-colors ${
-											sidebarExpanded
-												? activeSection === key ? 'bg-[#CC785C] text-white shadow-sm' : 'text-[#3d3d3d] hover:bg-[#E8E6DC]/80'
-												: 'text-[#3d3d3d]'
+										title={label}
+										className={`group relative w-full flex items-center justify-center h-9 px-1.5 rounded-md transition-colors ${
+											activeSection === key
+												? (isUIDark ? 'text-[#F3F4F6]' : 'text-[#111827]')
+												: (isUIDark ? 'text-[#9CA3AF] hover:text-[#CBD5E1]' : 'text-[#6B7280] hover:text-[#374151]')
 										}`}
 									>
-										<div
-											className={`w-6 h-6 rounded flex items-center justify-center flex-shrink-0 bg-gradient-to-br ${color} ${
-												!sidebarExpanded && activeSection === key ? 'scale-110' : ''
-											}`}
-											style={{ boxShadow: !sidebarExpanded && activeSection === key ? '0 0 0 2px rgba(204,120,92,0.6)' : 'none' }}
-										>
-											<Icon className="h-3.5 w-3.5 text-white"/>
-										</div>
-										<span className="text-sm font-medium whitespace-nowrap flex-1 text-left">{label}</span>
+										<Icon className={`h-4 w-4 ${activeSection === key ? (isUIDark ? 'text-[#F3F4F6]' : 'text-[#111827]') : (isUIDark ? 'text-[#9CA3AF] group-hover:text-[#CBD5E1]' : 'text-[#6B7280] group-hover:text-[#374151]')}`}/>
 										{key === 'plugins' && plugins.length > 0 && (
-											<span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-												activeSection === key ? 'bg-white/25 text-white' : 'bg-[#E8E6DC] text-[#87867F]'
+											<span className={`absolute -top-0.5 -right-0.5 text-[9px] min-w-4 h-4 px-1 rounded-full flex items-center justify-center ${
+												activeSection === key ? 'bg-white/25 text-white' : isUIDark ? 'bg-[#3A3B40] text-[#CBD5E1]' : 'bg-[#E5E7EB] text-[#6B7280]'
 											}`}>
 												{plugins.length}
 											</span>
@@ -1065,50 +1086,33 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
 						{/* 设置分组 */}
 						<div>
-							<div className="h-4 mb-1.5 overflow-hidden">
-								<p className="text-[10px] text-[#87867F] uppercase tracking-wider font-medium whitespace-nowrap px-1.5">设置</p>
-							</div>
 							<nav className="space-y-1">
-								{navItems.filter(item => item.group === 'settings').map(({key, label, icon: Icon, color}) => (
+								{navItems.filter(item => item.group === 'settings').map(({key, label, icon: Icon}) => (
 									<button
 										key={key}
 										onClick={() => handleSectionChange(key)}
-										title={!sidebarExpanded ? label : undefined}
-										className={`w-full flex items-center h-9 gap-2 px-1.5 rounded-md transition-colors ${
-											sidebarExpanded
-												? activeSection === key ? 'bg-[#CC785C] text-white shadow-sm' : 'text-[#3d3d3d] hover:bg-[#E8E6DC]/80'
-												: 'text-[#3d3d3d]'
+										title={label}
+										className={`group w-full flex items-center justify-center h-9 px-1.5 rounded-md transition-colors ${
+											activeSection === key
+												? (isUIDark ? 'text-[#F3F4F6]' : 'text-[#111827]')
+												: (isUIDark ? 'text-[#9CA3AF] hover:text-[#CBD5E1]' : 'text-[#6B7280] hover:text-[#374151]')
 										}`}
 									>
-										<div
-											className={`w-6 h-6 rounded flex items-center justify-center flex-shrink-0 bg-gradient-to-br ${color} ${
-												!sidebarExpanded && activeSection === key ? 'scale-110' : ''
-											}`}
-											style={{ boxShadow: !sidebarExpanded && activeSection === key ? '0 0 0 2px rgba(204,120,92,0.6)' : 'none' }}
-										>
-											<Icon className="h-3.5 w-3.5 text-white"/>
-										</div>
-										<span className="text-sm font-medium whitespace-nowrap flex-1 text-left">{label}</span>
+										<Icon className={`h-4 w-4 ${activeSection === key ? (isUIDark ? 'text-[#F3F4F6]' : 'text-[#111827]') : (isUIDark ? 'text-[#9CA3AF] group-hover:text-[#CBD5E1]' : 'text-[#6B7280] group-hover:text-[#374151]')}`}/>
 									</button>
 								))}
 							</nav>
 						</div>
 					</div>
-
-					{/* 底部版本号 */}
-					<div className="border-t border-[#E8E6DC] px-2 py-2 overflow-hidden text-center">
-						<span className={`text-[10px] text-[#87867F] whitespace-nowrap ${sidebarExpanded ? '' : 'hidden'}`}>
-							Lovpen@{packageJson.version}
-						</span>
-					</div>
 				</div>
 
-				{/* 右侧内容区 - 固定宽度，菜单切换时不变 */}
-				<div id="lovpen-toolbar-content" className="overflow-y-auto bg-[#F9F9F7] relative" style={{ width: 372 }}>
+					{/* 右侧内容区 - 可单独折叠，左侧图标栏保持显示 */}
+					{!isContentCollapsed && (
+					<div id="zepublish-toolbar-content" className={`flex-1 min-w-0 overflow-y-auto relative ${isUIDark ? 'bg-[#1F2023]' : 'bg-[#FAFAFA]'}`}>
 					<div className="p-4 sm:p-5">
 						{/* 文章信息 */}
 						{activeSection === 'article' && (
-							<SectionLayout title="文章信息">
+							<SectionLayout title="文章信息" isDark={isUIDark}>
 								<ArticleInfo
 									settings={atomSettings}
 									onSaveSettings={onSaveSettings}
@@ -1122,20 +1126,21 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
 						{/* 封面设计 */}
 						{activeSection === 'cover' && (
-							<SectionLayout title="封面设计" withCard={false}>
+							<SectionLayout title="封面设计" withCard={false} isDark={isUIDark}>
 								<CoverDesigner
 									articleHTML={articleHTML}
 									onDownloadCovers={handleDownloadCovers}
 									onClose={() => {}}
 									settings={atomSettings}
+									isUIDark={isUIDark}
 									onOpenAISettings={() => handleSectionChange('ai')}
 								/>
 							</SectionLayout>
 						)}
 
 						{/* 模板套装 */}
-						{activeSection === 'kits' && (
-							<SectionLayout title="模板套装">
+						{showStyleUI && activeSection === 'kits' && (
+							<SectionLayout title="模板套装" isDark={isUIDark}>
 								<TemplateKitSelector
 									settings={settings}
 									onKitApply={onKitApply}
@@ -1153,12 +1158,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
 						{/* 插件管理 */}
 						{activeSection === 'plugins' && (
-							<SectionLayout title="插件管理">
+							<SectionLayout title="插件管理" isDark={isUIDark}>
 								{plugins.length > 0 ? (
 									<Tabs value={pluginTab} onValueChange={(value) => {
 										setPluginTab(value);
 										try {
-											localStorage.setItem('lovpen-toolbar-plugin-tab', value);
+											localStorage.setItem('zepublish-toolbar-plugin-tab', value);
 										} catch {}
 									}}>
 										<TabsList className="bg-muted rounded-xl p-0.5 mb-4 w-full sm:w-auto">
@@ -1250,7 +1255,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
 						{/* 个人信息 */}
 						{activeSection === 'personal' && (
-							<SectionLayout title="个人信息">
+							<SectionLayout title="个人信息" isDark={isUIDark}>
 								<PersonalInfoSettings
 									onClose={() => handleSectionChange('article')}
 									onPersonalInfoChange={onPersonalInfoChange}
@@ -1261,7 +1266,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
 						{/* AI 设置 */}
 						{activeSection === 'ai' && (
-							<SectionLayout title="AI 设置">
+							<SectionLayout title="AI 设置" isDark={isUIDark}>
 								<AISettings
 									onClose={() => handleSectionChange('article')}
 									onSettingsChange={onSettingsChange}
@@ -1272,7 +1277,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
 						{/* 云存储 */}
 						{activeSection === 'cloud' && (
-							<SectionLayout title="云存储" withCard={false}>
+							<SectionLayout title="云存储" withCard={false} isDark={isUIDark}>
 								<CloudStoragePanelContent
 									cloudSettings={atomSettings.cloudStorage ?? defaultCloudStorageSettings}
 									onSettingsChange={(newCloudSettings) => {
@@ -1283,9 +1288,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 							</SectionLayout>
 						)}
 
-						{/* 实验室 Playground */}
+						{/* 生图 Playground */}
 						{activeSection === 'playground' && (
-							<SectionLayout title="实验室">
+							<SectionLayout title="生图" isDark={isUIDark}>
 								<PlaygroundPanel
 									settings={atomSettings}
 									onOpenAISettings={() => handleSectionChange('ai')}
@@ -1295,41 +1300,17 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
 						{/* AI 日志 */}
 						{activeSection === 'logs' && (
-							<SectionLayout title="AI 日志">
+							<SectionLayout title="AI 日志" isDark={isUIDark}>
 								<LogsPanel/>
 							</SectionLayout>
 						)}
 
 						{/* 通用设置 */}
 						{activeSection === 'general' && (
-							<SectionLayout title="通用" withCard={false}>
+							<SectionLayout title="通用" withCard={false} isDark={isUIDark}>
 								{/* 设置卡片组 */}
-								<div className="bg-white rounded-xl border border-[#E8E6DC] overflow-hidden">
-									<div className="divide-y divide-[#E8E6DC]">
-										{/* 工具栏位置 */}
-										<div className="flex items-center justify-between px-4 py-3">
-											<div className="flex items-center gap-3">
-												<div className="w-7 h-7 bg-gradient-to-br from-[#CC785C] to-[#B86A4E] rounded-md flex items-center justify-center">
-													<PanelLeft className="h-4 w-4 text-white"/>
-												</div>
-												<span className="text-[#181818] text-sm">工具栏位置</span>
-											</div>
-											<div className="flex bg-[#E8E6DC] rounded-lg p-0.5">
-												<button
-													onClick={() => { updateSettings({toolbarPosition: 'left'}); saveSettings(); }}
-													className={`px-3 py-1 text-xs rounded-md transition-all ${
-														atomSettings.toolbarPosition === 'left' ? 'bg-white text-[#181818] shadow-sm' : 'text-[#87867F]'
-													}`}
-												>左</button>
-												<button
-													onClick={() => { updateSettings({toolbarPosition: 'right'}); saveSettings(); }}
-													className={`px-3 py-1 text-xs rounded-md transition-all ${
-														(atomSettings.toolbarPosition ?? 'right') === 'right' ? 'bg-white text-[#181818] shadow-sm' : 'text-[#87867F]'
-													}`}
-												>右</button>
-											</div>
-										</div>
-
+								<div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
+									<div className="divide-y divide-[#E5E7EB]">
 										{/* 代码块缩放 */}
 										<div className="flex items-center justify-between px-4 py-3">
 											<div className="flex items-center gap-3">
@@ -1337,15 +1318,15 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 													<Image className="h-4 w-4 text-white"/>
 												</div>
 												<div>
-													<span className="text-[#181818] text-sm block">代码块自动缩放</span>
-													<span className="text-[#87867F] text-xs">复制图片时自动适配</span>
+													<span className="text-[#111827] text-sm block">代码块自动缩放</span>
+													<span className="text-[#6B7280] text-xs">复制图片时自动适配</span>
 												</div>
 											</div>
 											<Switch
-												checked={atomSettings.scaleCodeBlockInImage ?? true}
+												checked={scaleCodeBlockEnabled}
 												onCheckedChange={(checked) => {
-													updateSettings({scaleCodeBlockInImage: checked});
-													saveSettings();
+													setScaleCodeBlockEnabled(checked);
+													persistSettingChange({scaleCodeBlockInImage: checked});
 												}}
 											/>
 										</div>
@@ -1357,15 +1338,15 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 													<Heading1 className="h-4 w-4 text-white"/>
 												</div>
 												<div>
-													<span className="text-[#181818] text-sm block">隐藏一级标题</span>
-													<span className="text-[#87867F] text-xs">渲染时移除首个 H1</span>
+													<span className="text-[#111827] text-sm block">隐藏一级标题</span>
+													<span className="text-[#6B7280] text-xs">渲染时移除首个 H1</span>
 												</div>
 											</div>
 											<Switch
-												checked={atomSettings.hideFirstHeading ?? false}
+												checked={hideFirstHeadingEnabled}
 												onCheckedChange={(checked) => {
-													updateSettings({hideFirstHeading: checked});
-													saveSettings();
+													setHideFirstHeadingEnabled(checked);
+													persistSettingChange({hideFirstHeading: checked});
 													onRenderArticle?.();
 												}}
 											/>
@@ -1378,17 +1359,47 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 													<Image className="h-4 w-4 text-white"/>
 												</div>
 												<div>
-													<span className="text-[#181818] text-sm block">显示封面</span>
-													<span className="text-[#87867F] text-xs">在文章开头显示封面图</span>
+													<span className="text-[#111827] text-sm block">显示封面</span>
+													<span className="text-[#6B7280] text-xs">在文章开头显示封面图</span>
 												</div>
 											</div>
 											<Switch
-												checked={atomSettings.showCoverInArticle ?? true}
+												checked={showCoverEnabled}
 												onCheckedChange={(checked) => {
-													updateSettings({showCoverInArticle: checked});
-													saveSettings();
+													setShowCoverEnabled(checked);
+													persistSettingChange({showCoverInArticle: checked});
 													onRenderArticle?.();
 												}}
+											/>
+										</div>
+
+										{/* 生图保存目录 */}
+										<div className="px-4 py-3">
+											<div className="flex items-center justify-between mb-2">
+												<div className="flex items-center gap-3">
+												<div className="w-7 h-7 bg-gradient-to-br from-[#C2C07D] to-[#A2A05D] rounded-md flex items-center justify-center">
+													<Image className="h-4 w-4 text-white"/>
+												</div>
+												<div>
+													<span className="text-[#111827] text-sm block">生图保存目录</span>
+													<span className="text-[#6B7280] text-xs">生图“保存到笔记”使用该目录</span>
+												</div>
+												</div>
+												<Switch
+													checked={imageSaveFolderEnabled}
+													onCheckedChange={(checked) => {
+														setImageSaveFolderEnabled(checked);
+														persistSettingChange({imageSaveFolderEnabled: checked});
+													}}
+												/>
+											</div>
+											<input
+												type="text"
+												value={atomSettings.imageSaveFolder ?? "zepublish-images"}
+												onChange={(e) => persistSettingChange({imageSaveFolder: e.target.value})}
+												disabled={!imageSaveFolderEnabled}
+												placeholder="例如：attachments/ai-images"
+												className="w-full px-3 py-2 bg-[#FAFAFA] border border-[#E5E7EB] rounded-lg text-sm text-[#111827] placeholder:text-[#6B7280]/60 focus:outline-none focus:border-[#4B5563] focus:ring-1 focus:ring-[#4B5563] disabled:opacity-50 disabled:cursor-not-allowed"
 											/>
 										</div>
 									</div>
@@ -1396,39 +1407,40 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
 								{/* 即将推出 */}
 								<div>
-									<p className="text-xs text-[#87867F] uppercase tracking-wide px-1 mb-2">即将推出</p>
-									<div className="bg-white/60 rounded-xl border border-[#E8E6DC] overflow-hidden">
-										<div className="divide-y divide-[#E8E6DC]">
+									<p className="text-xs text-[#6B7280] uppercase tracking-wide px-1 mb-2">即将推出</p>
+									<div className="bg-white/60 rounded-xl border border-[#E5E7EB] overflow-hidden">
+										<div className="divide-y divide-[#E5E7EB]">
 											{[
 												{label: '主题', desc: '明亮 / 暗色', color: 'from-[#B49FD8] to-[#8B7CB8]'},
 												{label: '语言', desc: '简体中文', color: 'from-[#97B5D5] to-[#7095B5]'},
 												{label: '快捷键', desc: '自定义', color: 'from-[#C2C07D] to-[#A2A05D]'},
-												{label: '数据', desc: '导入 / 导出', color: 'from-[#CC785C] to-[#AC583C]'}
+												{label: '数据', desc: '导入 / 导出', color: 'from-[#4B5563] to-[#AC583C]'}
 											].map((item, i) => (
 												<div key={i} className="flex items-center justify-between px-4 py-3 opacity-50">
 													<div className="flex items-center gap-3">
 														<div className={`w-7 h-7 bg-gradient-to-br ${item.color} rounded-md`}/>
-														<span className="text-[#181818] text-sm">{item.label}</span>
+														<span className="text-[#111827] text-sm">{item.label}</span>
 													</div>
-													<span className="text-[#87867F] text-xs">{item.desc}</span>
+													<span className="text-[#6B7280] text-xs">{item.desc}</span>
 												</div>
 											))}
 										</div>
 									</div>
 								</div>
 							</SectionLayout>
+							)}
+						</div>
+					</div>
 						)}
 					</div>
-				</div>
-			</div>
 		);
 	} catch (error) {
 		logger.error("[Toolbar] 完整工具栏渲染错误:", error);
 		return (
-			<div className="h-full flex flex-col bg-[#F9F9F7] p-6">
-				<div className="bg-white border border-[#E8E6DC] rounded-2xl p-6">
-					<h3 className="text-lg font-semibold text-[#D97757] mb-2">完整工具栏渲染失败</h3>
-					<p className="text-sm text-[#87867F]">错误信息: {error instanceof Error ? error.message : String(error)}</p>
+			<div className="h-full flex flex-col bg-[#FAFAFA] p-6">
+				<div className="bg-white border border-[#E5E7EB] rounded-2xl p-6">
+					<h3 className="text-lg font-semibold text-[#4B5563] mb-2">完整工具栏渲染失败</h3>
+					<p className="text-sm text-[#6B7280]">错误信息: {error instanceof Error ? error.message : String(error)}</p>
 				</div>
 			</div>
 		);

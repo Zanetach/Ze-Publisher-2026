@@ -14,15 +14,15 @@ export type {
 	PersistentStorageAPI,
 	TemplateKitAPI,
 	SettingsAPI,
-	LovpenReactAPI,
-	LovpenGlobalAPI
-} from '@lovpen/shared';
+	ZePublishReactAPI,
+	ZePublishGlobalAPI
+} from '@ze-publisher/shared';
 
 // 重新导出以供本地使用
-import type {LovpenGlobalAPI} from '@lovpen/shared';
+import type {ZePublishGlobalAPI} from '@ze-publisher/shared';
 
 declare global {
-	interface Window extends LovpenGlobalAPI {
+	interface Window extends ZePublishGlobalAPI {
 	}
 }
 

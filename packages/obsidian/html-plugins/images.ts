@@ -1,9 +1,9 @@
-import {NMPSettings} from "../settings";
-import {UniversalPluginMetaConfig} from "../shared/plugin/plugin-config-manager";
+import { NMPSettings } from "../settings";
+import { UniversalPluginMetaConfig } from "../shared/plugin/plugin-config-manager";
 
-import {logger} from "../../shared/src/logger";
+import { logger } from "../../shared/src/logger";
 
-import {HtmlPlugin as UnifiedHtmlPlugin} from "../shared/plugin/html-plugin";
+import { HtmlPlugin as UnifiedHtmlPlugin } from "../shared/plugin/html-plugin";
 
 /**
  * 图片处理插件 - 处理微信公众号中的图片格式
@@ -30,8 +30,8 @@ export class Images extends UnifiedHtmlPlugin {
 			showImageCaption: {
 				type: "switch",
 				title: "显示图片说明",
-				description: "将图片的 alt 文本显示为图注"
-			}
+				description: "将图片的 alt 文本显示为图注",
+			},
 		};
 	}
 
@@ -45,12 +45,18 @@ export class Images extends UnifiedHtmlPlugin {
 			const config = this.getConfig();
 			const showImageCaption = config.showImageCaption !== false; // 默认显示
 
-			logger.debug("图片处理插件开始处理，showImageCaption设置:", showImageCaption);
+			logger.debug(
+				"图片处理插件开始处理，showImageCaption设置:",
+				showImageCaption,
+			);
 			logger.debug("处理前的HTML片段:", html.substring(0, 500) + "...");
-			
+
 			// 创建一个临时容器来解析HTML片段，避免丢失样式
 			const parser = new DOMParser();
-			const doc = parser.parseFromString(`<div>${html}</div>`, "text/html");
+			const doc = parser.parseFromString(
+				`<div>${html}</div>`,
+				"text/html",
+			);
 			const container = doc.body.firstChild as HTMLElement;
 
 			// 查找所有图片元素
@@ -66,7 +72,7 @@ export class Images extends UnifiedHtmlPlugin {
 					src: src?.substring(0, 50) + "...",
 					alt,
 					title,
-					outerHTML: img.outerHTML.substring(0, 100) + "..."
+					outerHTML: img.outerHTML.substring(0, 100) + "...",
 				});
 
 				if (src) {
@@ -77,14 +83,14 @@ export class Images extends UnifiedHtmlPlugin {
 					if (!img.hasAttribute("style")) {
 						img.setAttribute(
 							"style",
-							"max-width: 100%; height: auto;"
+							"max-width: 100%; height: auto;",
 						);
 					}
 
 					// 确保图片居中显示
 					const parent = img.parentElement;
 					if (parent && parent.tagName !== "CENTER") {
-						parent.style.textAlign = "center";
+						parent.classList.add("zp-image-wrapper");
 					}
 
 					// 处理图片说明文字
@@ -98,7 +104,7 @@ export class Images extends UnifiedHtmlPlugin {
 						parentTagName: parent?.tagName,
 						hasFigureParent: !!figureParent,
 						hasFigcaption: !!figcaption,
-						figcaptionText: figcaption?.textContent
+						figcaptionText: figcaption?.textContent,
 					});
 
 					if (!showImageCaption) {
@@ -110,36 +116,28 @@ export class Images extends UnifiedHtmlPlugin {
 						// 查找并移除可能的caption元素
 						if (figcaption) {
 							figcaption.remove();
-							logger.debug(`移除了第${index + 1}张图片的figcaption`);
+							logger.debug(
+								`移除了第${index + 1}张图片的figcaption`,
+							);
 						}
 					} else {
 						logger.debug(`保持第${index + 1}张图片的说明文字显示`);
 
 						// 如果有alt属性但没有figcaption，创建caption显示
 						if (alt && alt.trim() && !figcaption) {
-							logger.debug(`为第${index + 1}张图片创建可见的caption`);
+							logger.debug(
+								`为第${index + 1}张图片创建可见的caption`,
+							);
 
 							// 创建一个段落元素，使用与现有内容相似的结构
-							const captionP = container.ownerDocument.createElement("p");
-							captionP.setAttribute("style",
-								"text-align: center !important; " +
-								"color: #666666 !important; " +
-								"font-size: 14px !important; " +
-								"margin-top: 8px !important; " +
-								"margin-bottom: 8px !important; " +
-								"font-style: italic !important; " +
-								"line-height: 1.5 !important; " +
-								"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;"
-							);
+							const captionP =
+								container.ownerDocument.createElement("p");
+							captionP.classList.add("zp-image-caption");
 
 							// 创建span元素，使用leaf属性（符合现有结构）
-							const captionSpan = container.ownerDocument.createElement("span");
+							const captionSpan =
+								container.ownerDocument.createElement("span");
 							captionSpan.setAttribute("leaf", "");
-							captionSpan.setAttribute("style",
-								"color: #666666 !important; " +
-								"font-style: italic !important; " +
-								"font-size: 14px !important;"
-							);
 							captionSpan.textContent = alt;
 
 							captionP.appendChild(captionSpan);

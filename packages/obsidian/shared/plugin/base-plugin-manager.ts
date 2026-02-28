@@ -1,4 +1,4 @@
-import {logger} from "@lovpen/shared/src/logger";
+import {logger} from "@ze-publisher/shared/src/logger";
 
 /**
  * 基础插件管理器 - 提供通用的单例模式实现和插件管理功能

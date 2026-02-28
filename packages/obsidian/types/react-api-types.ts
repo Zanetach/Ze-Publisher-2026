@@ -1,6 +1,12 @@
-import {TemplateKit, TemplateKitBasicInfo} from "../template-kit-types";
-import {PersistentStorageAPI, RequestUrlFunction, SettingsAPI, TemplateKitAPI, CodeBlockImageResult} from "@lovpen/shared";
-import {CloudStorageSettings} from "../settings";
+import { TemplateKit, TemplateKitBasicInfo } from "../template-kit-types";
+import {
+	PersistentStorageAPI,
+	RequestUrlFunction,
+	SettingsAPI,
+	TemplateKitAPI,
+	CodeBlockImageResult,
+} from "@ze-publisher/shared";
+import { CloudStorageSettings } from "../settings";
 
 /**
  * Shadow DOM 挂载选项
@@ -20,11 +26,18 @@ export interface ShadowMountOptions {
  */
 export interface ExternalReactLib {
 	/** 挂载React组件到指定容器，支持 Shadow DOM 模式 */
-	mount: (container: HTMLElement, props: ReactComponentProps, options?: ShadowMountOptions) => void;
+	mount: (
+		container: HTMLElement,
+		props: ReactComponentProps,
+		options?: ShadowMountOptions,
+	) => void;
 	/** 卸载React组件 */
 	unmount: (container: HTMLElement) => void;
 	/** 更新React组件的props */
-	update: (container: HTMLElement, props: ReactComponentProps) => Promise<void>;
+	update: (
+		container: HTMLElement,
+		props: ReactComponentProps,
+	) => Promise<void>;
 }
 
 /**
@@ -43,9 +56,15 @@ export interface ReactSettings {
 	wxInfo: Array<{ name: string; appid: string; secret: string }>;
 	expandedAccordionSections: string[];
 	showStyleUI: boolean;
+	enableDefaultAuthorProfile?: boolean;
+	defaultAuthorName?: string;
+	defaultAuthorImageData?: string;
 	personalInfo: PersonalInfo;
 	aiPromptTemplate: string;
 	aiModel: string;
+	uiThemeMode?: "auto" | "light" | "dark";
+	imageSaveFolderEnabled?: boolean;
+	imageSaveFolder?: string;
 	cloudStorage?: CloudStorageSettings;
 
 	[key: string]: any; // 添加索引签名以支持动态属性访问
@@ -55,7 +74,7 @@ export interface ReactSettings {
  * 头像配置接口
  */
 export interface AvatarConfig {
-	type: 'default' | 'uploaded' | 'initials';
+	type: "default" | "uploaded" | "initials";
 	data?: string;
 	initials?: string;
 	backgroundColor?: string;
@@ -106,13 +125,12 @@ export interface ArticleInfo {
  */
 export interface PluginData {
 	name: string;
-	type: 'remark' | 'rehype' | 'unknown';
+	type: "remark" | "rehype" | "unknown";
 	description: string;
 	enabled: boolean;
 	config: Record<string, any>;
 	metaConfig: Record<string, any>;
 }
-
 
 /**
  * UI特定的回调函数接口 - 仅包含UI交互相关的回调
@@ -129,7 +147,11 @@ export interface UISpecificCallbacks {
 	onRenderArticle: () => Promise<void>;
 	onUpdateCSSVariables: () => void;
 	onPluginToggle: (pluginName: string, enabled: boolean) => void;
-	onPluginConfigChange: (pluginName: string, key: string, value: string | boolean) => void;
+	onPluginConfigChange: (
+		pluginName: string,
+		key: string,
+		value: string | boolean,
+	) => void;
 	onExpandedSectionsChange: (sections: string[]) => void;
 	onWidthChange?: (width: number) => void;
 }
@@ -158,8 +180,8 @@ export interface EnhancedSettingsAPI extends SettingsAPI {
 /**
  * React API回调函数接口 - 组合UI回调和增强的业务API
  */
-export interface ReactAPICallbacks extends UISpecificCallbacks, EnhancedTemplateKitAPI, EnhancedSettingsAPI {
-}
+export interface ReactAPICallbacks
+	extends UISpecificCallbacks, EnhancedTemplateKitAPI, EnhancedSettingsAPI {}
 
 /**
  * React组件Props接口
@@ -176,12 +198,12 @@ export interface ReactComponentProps {
 /**
  * React组件Props包含回调函数
  */
-export interface ReactComponentPropsWithCallbacks extends ReactComponentProps, ReactAPICallbacks {
-}
+export interface ReactComponentPropsWithCallbacks
+	extends ReactComponentProps, ReactAPICallbacks {}
 
 /**
  * 全局API接口
- * 专门用于window.lovpenReactAPI，只包含核心业务方法和存储/请求功能
+ * 专门用于window.zepublishReactAPI，只包含核心业务方法和存储/请求功能
  * 与ReactAPICallbacks分离，避免UI回调污染全局API
  */
 export interface GlobalReactAPI {
@@ -203,28 +225,36 @@ export interface GlobalReactAPI {
 	requestUrl: RequestUrlFunction;
 
 	// 代码块操作API
-	uploadCodeBlockAsImage: (codeContent: string, imageDataUrl: string) => Promise<CodeBlockImageResult>;
+	uploadCodeBlockAsImage: (
+		codeContent: string,
+		imageDataUrl: string,
+	) => Promise<CodeBlockImageResult>;
 
 	// 表格操作API
-	uploadTableAsImage: (tableMarkdown: string, imageDataUrl: string) => Promise<CodeBlockImageResult>;
+	uploadTableAsImage: (
+		tableMarkdown: string,
+		imageDataUrl: string,
+	) => Promise<CodeBlockImageResult>;
 }
 
 /**
  * 类型守卫函数
  */
 export function isValidPersonalInfo(obj: any): obj is PersonalInfo {
-	return obj &&
-		typeof obj.name === 'string' &&
-		typeof obj.bio === 'string';
+	return obj && typeof obj.name === "string" && typeof obj.bio === "string";
 }
 
 export function isValidArticleInfo(obj: any): obj is ArticleInfo {
-	return obj && typeof obj === 'object';
+	return obj && typeof obj === "object";
 }
 
-export function isValidTemplateKitBasicInfo(obj: any): obj is TemplateKitBasicInfo {
-	return obj &&
-		typeof obj.id === 'string' &&
-		typeof obj.name === 'string' &&
-		typeof obj.description === 'string';
+export function isValidTemplateKitBasicInfo(
+	obj: any,
+): obj is TemplateKitBasicInfo {
+	return (
+		obj &&
+		typeof obj.id === "string" &&
+		typeof obj.name === "string" &&
+		typeof obj.description === "string"
+	);
 }

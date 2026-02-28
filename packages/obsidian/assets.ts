@@ -1,22 +1,29 @@
 import * as zip from "@zip.js/zip.js";
-import {App, FileSystemAdapter, Notice, PluginManifest, requestUrl, TAbstractFile} from "obsidian";
+import {
+	App,
+	FileSystemAdapter,
+	Notice,
+	PluginManifest,
+	requestUrl,
+	TAbstractFile,
+} from "obsidian";
 import DefaultHighlight from "./default-highlight";
 import DefaultTheme from "./default-theme";
-import {logger} from "../shared/src/logger";
-
+import { logger } from "../shared/src/logger";
+import { resolvePluginAssetsDir } from "./plugin-paths";
 
 export interface Theme {
-	name: string
-	className: string
-	desc: string
-	author: string
-	css: string
+	name: string;
+	className: string;
+	desc: string;
+	author: string;
+	css: string;
 }
 
 export interface Highlight {
-	name: string
-	url: string
-	css: string
+	name: string;
+	url: string;
+	css: string;
 }
 
 export default class AssetsManager {
@@ -29,16 +36,15 @@ export default class AssetsManager {
 	assetsPath: string;
 	themesPath: string;
 	hilightPath: string;
-	customCSS: string = '';
+	customCSS: string = "";
 	themeCfg: string;
 	hilightCfg: string;
 	customCSSPath: string;
 	iconsPath: string;
 	templatesPath: string;
+	private assetsPathResolved = false;
 
-	private constructor() {
-
-	}
+	private constructor() {}
 
 	// 静态方法，用于获取实例
 	public static getInstance(): AssetsManager {
@@ -60,12 +66,16 @@ export default class AssetsManager {
 
 	async loadThemes() {
 		try {
+			await this.ensureAssetsPathResolved();
 			// 首先加载默认主题
 			this.themes = [this.defaultTheme];
 
 			// 加载其他主题配置
-			if (!await this.app.vault.adapter.exists(this.themeCfg)) {
-				new Notice('主题资源未下载，请前往设置下载！');
+			if (!(await this.app.vault.adapter.exists(this.themeCfg))) {
+				// 资源缺失时不直接报错阻塞，优先降级到默认主题
+				logger.warn(
+					`[AssetsManager] themes.json 不存在，使用默认主题: ${this.themeCfg}`,
+				);
 				return;
 			}
 
@@ -76,49 +86,59 @@ export default class AssetsManager {
 				this.themes.push(...themes);
 			}
 		} catch (error) {
-			logger.error('Failed to parse themes.json:', error);
-			new Notice('themes.json解析失败！');
+			logger.error("Failed to parse themes.json:", error);
+			new Notice("themes.json解析失败！");
 		}
 	}
 
 	async loadCSS(themes: Theme[]) {
 		try {
 			for (const theme of themes) {
-				const cssFile = this.themesPath + theme.className + '.css';
+				const cssFile = this.themesPath + theme.className + ".css";
 				const cssContent = await this.app.vault.adapter.read(cssFile);
 				if (cssContent) {
-					theme.css = cssContent;
+					// 兼容 note-to-mp 主题：将其容器选择器映射到本项目容器
+					theme.css = cssContent
+						.replace(/\.(note-to-mp)\b/g, ".zepublish")
+						.replace(/#write\b/g, ".zepublish");
 				}
 			}
 		} catch (error) {
-			logger.error('Failed to read CSS:', error);
-			new Notice('读取CSS失败！');
+			logger.error("Failed to read CSS:", error);
+			new Notice("读取CSS失败！");
 		}
 	}
 
 	async loadCustomCSS() {
 		try {
-			if (!await this.app.vault.adapter.exists(this.customCSSPath)) {
+			if (!(await this.app.vault.adapter.exists(this.customCSSPath))) {
 				return;
 			}
 
-			const cssContent = await this.app.vault.adapter.read(this.customCSSPath);
+			const cssContent = await this.app.vault.adapter.read(
+				this.customCSSPath,
+			);
 			if (cssContent) {
 				this.customCSS = cssContent;
 			}
 		} catch (error) {
-			logger.error('Failed to read CSS:', error);
-			new Notice('读取CSS失败！');
+			logger.error("Failed to read CSS:", error);
+			new Notice("读取CSS失败！");
 		}
 	}
 
 	async loadHighlights() {
 		try {
-			const defaultHighlight = {name: '默认', url: '', css: DefaultHighlight};
+			await this.ensureAssetsPathResolved();
+			const defaultHighlight = {
+				name: "默认",
+				url: "",
+				css: DefaultHighlight,
+			};
 			this.highlights = [defaultHighlight];
-			if (!await this.app.vault.adapter.exists(this.hilightCfg)) {
+			if (!(await this.app.vault.adapter.exists(this.hilightCfg))) {
 				// 高亮资源可选，不强制要求下载
-				logger.debug('高亮资源未下载，使用默认高亮');
+				logger.debug("高亮资源未下载，使用默认高亮");
 				return;
 			}
 
@@ -126,32 +146,37 @@ export default class AssetsManager {
 			if (data) {
 				const items = JSON.parse(data);
 				for (const item of items) {
-					const cssFile = this.hilightPath + item.name + '.css';
+					const cssFile = this.hilightPath + item.name + ".css";
 					// 检查文件是否存在，不存在则跳过
-					if (!await this.app.vault.adapter.exists(cssFile)) {
+					if (!(await this.app.vault.adapter.exists(cssFile))) {
 						logger.debug(`高亮CSS文件不存在，跳过: ${cssFile}`);
 						continue;
 					}
-					const cssContent = await this.app.vault.adapter.read(cssFile);
-					this.highlights.push({name: item.name, url: item.url, css: cssContent});
+					const cssContent =
+						await this.app.vault.adapter.read(cssFile);
+					this.highlights.push({
+						name: item.name,
+						url: item.url,
+						css: cssContent,
+					});
 				}
 			}
 		} catch (error) {
-			logger.error('Failed to parse highlights.json:', error);
+			logger.error("Failed to parse highlights.json:", error);
 			// 不显示错误通知，允许继续使用默认高亮
 		}
 	}
 
 	async loadIcon(name: string) {
-		const icon = this.iconsPath + name + '.svg';
-		if (!await this.app.vault.adapter.exists(icon)) {
-			return '';
+		const icon = this.iconsPath + name + ".svg";
+		if (!(await this.app.vault.adapter.exists(icon))) {
+			return "";
 		}
 		const iconContent = await this.app.vault.adapter.read(icon);
 		if (iconContent) {
 			return iconContent;
 		}
-		return '';
+		return "";
 	}
 
 	getTheme(themeName: string) {
@@ -160,6 +185,8 @@ export default class AssetsManager {
 				return theme;
 			}
 		}
+		// 主题不存在时始终回退到默认主题，避免右侧预览变成“无主题”样式
+		return this.defaultTheme;
 	}
 
 	getHighlight(highlightName: string) {
@@ -171,24 +198,83 @@ export default class AssetsManager {
 	}
 
 	getThemeURL() {
-		return `https://github.com/markshawn2020/lovpen/releases/download/1.1.3/assets.zip`;
+		return `https://github.com/markshawn2020/obsidian-zepublish/releases/latest/download/assets.zip`;
+	}
+
+	private async ensureAssetsDirs() {
+		const adapter = this.app.vault.adapter;
+		if (!(await adapter.exists(this.assetsPath))) {
+			await adapter.mkdir(this.assetsPath);
+		}
+		if (!(await adapter.exists(this.themesPath))) {
+			await adapter.mkdir(this.themesPath);
+		}
 	}
 
 	async downloadThemes() {
+		new Notice("已关闭默认地址下载，请使用“在线下载主题”功能");
+	}
+
+	async downloadThemesFromUrl(url: string) {
 		try {
-			if (await this.app.vault.adapter.exists(this.themeCfg)) {
-				new Notice('主题资源已存在！')
+			const targetUrl = (url || "").trim();
+			if (!targetUrl) {
+				new Notice("请输入主题下载链接");
 				return;
 			}
-			const res = await requestUrl(this.getThemeURL());
-			const data = res.arrayBuffer;
-			await this.unzip(new Blob([data]));
+			const res = await requestUrl({ url: targetUrl, method: "GET" });
+			const contentType = String(
+				res.headers?.["content-type"] || "",
+			).toLowerCase();
+			const lowerUrl = targetUrl.toLowerCase();
+
+			// ZIP 主题包
+			if (lowerUrl.endsWith(".zip") || contentType.includes("zip")) {
+				await this.unzip(new Blob([res.arrayBuffer]));
+				await this.loadAssets();
+				new Notice("主题包导入完成！");
+				return;
+			}
+
+			// 单个 CSS 主题
+			const cssText = res.text || "";
+			if (cssText.trim().length === 0) {
+				new Notice("链接内容为空，无法导入主题");
+				return;
+			}
+
+			await this.ensureAssetsDirs();
+			const className = `custom-${Date.now()}`;
+			const themeName = `在线主题 ${className}`;
+			const cssFilePath = `${this.themesPath}${className}.css`;
+			await this.app.vault.adapter.write(cssFilePath, cssText);
+
+			let themeConfig: Theme[] = [];
+			if (await this.app.vault.adapter.exists(this.themeCfg)) {
+				try {
+					const raw = await this.app.vault.adapter.read(this.themeCfg);
+					themeConfig = JSON.parse(raw || "[]");
+				} catch {
+					themeConfig = [];
+				}
+			}
+
+			themeConfig.push({
+				name: themeName,
+				className,
+				desc: `from ${targetUrl}`,
+				author: "online-import",
+				css: "",
+			});
+			await this.app.vault.adapter.write(
+				this.themeCfg,
+				JSON.stringify(themeConfig, null, 2),
+			);
 			await this.loadAssets();
-			new Notice('主题下载完成！');
+			new Notice("在线主题导入完成！");
 		} catch (error) {
-			logger.error('Failed to download themes:', error);
-			await this.removeThemes();
-			new Notice('主题下载失败, 请检查网络！');
+			logger.error("Failed to download themes from url:", error);
+			new Notice("在线导入主题失败，请检查链接是否可访问");
 		}
 	}
 
@@ -197,7 +283,7 @@ export default class AssetsManager {
 		const zipReader = new zip.ZipReader(zipFileReader);
 		const entries = await zipReader.getEntries();
 
-		if (!await this.app.vault.adapter.exists(this.assetsPath)) {
+		if (!(await this.app.vault.adapter.exists(this.assetsPath))) {
 			this.app.vault.adapter.mkdir(this.assetsPath);
 		}
 
@@ -234,30 +320,30 @@ export default class AssetsManager {
 				await adapter.rmdir(this.hilightPath, true);
 			}
 			await this.loadAssets();
-			new Notice('清空完成！');
+			new Notice("清空完成！");
 		} catch (error) {
-			logger.error('Failed to remove themes:', error);
-			new Notice('清空主题失败！');
+			logger.error("Failed to remove themes:", error);
+			new Notice("清空主题失败！");
 		}
 	}
 
 	async openAssets() {
-		const path = require('path');
+		const path = require("path");
 		const adapter = this.app.vault.adapter as FileSystemAdapter;
 		const vaultRoot = adapter.getBasePath();
 		const assets = this.assetsPath;
-		if (!await adapter.exists(assets)) {
+		if (!(await adapter.exists(assets))) {
 			await adapter.mkdir(assets);
 		}
 		const dst = path.join(vaultRoot, assets);
-		const {shell} = require('electron');
+		const { shell } = require("electron");
 		shell.openPath(dst);
 	}
 
 	searchFile(originPath: string): TAbstractFile | null {
 		const resolvedPath = this.resolvePath(originPath);
 		const vault = this.app.vault;
-		const attachmentFolderPath = vault.config.attachmentFolderPath || '';
+		const attachmentFolderPath = vault.config.attachmentFolderPath || "";
 		let localPath = resolvedPath;
 		let file = null;
 
@@ -273,15 +359,15 @@ export default class AssetsManager {
 		}
 
 		// 先从附件文件夹查找
-		if (attachmentFolderPath != '') {
-			localPath = attachmentFolderPath + '/' + originPath;
-			file = vault.getFileByPath(localPath)
+		if (attachmentFolderPath != "") {
+			localPath = attachmentFolderPath + "/" + originPath;
+			file = vault.getFileByPath(localPath);
 			if (file) {
 				return file;
 			}
 
-			localPath = attachmentFolderPath + '/' + resolvedPath;
-			file = vault.getFileByPath(localPath)
+			localPath = attachmentFolderPath + "/" + resolvedPath;
+			file = vault.getFileByPath(localPath);
 			if (file) {
 				return file;
 			}
@@ -300,7 +386,7 @@ export default class AssetsManager {
 
 	resolvePath(relativePath: string): string {
 		const basePath = this.getActiveFileDir();
-		if (!relativePath.includes('/')) {
+		if (!relativePath.includes("/")) {
 			return relativePath;
 		}
 		const stack = basePath.split("/");
@@ -319,26 +405,89 @@ export default class AssetsManager {
 	getActiveFileDir() {
 		const af = this.app.workspace.getActiveFile();
 		if (af == null) {
-			return '';
+			return "";
 		}
-		const parts = af.path.split('/');
+		const parts = af.path.split("/");
 		parts.pop();
 		if (parts.length == 0) {
-			return '';
+			return "";
 		}
-		return parts.join('/');
+		return parts.join("/");
 	}
 
 	private _setup(app: App, manifest: PluginManifest) {
 		this.app = app;
 		this.manifest = manifest;
-		this.assetsPath = this.app.vault.configDir + '/plugins/obsidian-lovpen/assets/';
-		this.themesPath = this.assetsPath + 'themes/';
-		this.hilightPath = this.assetsPath + 'highlights/';
-		this.themeCfg = this.assetsPath + 'themes.json';
-		this.hilightCfg = this.assetsPath + 'highlights.json';
-		this.customCSSPath = this.assetsPath + 'custom.css';
-		this.iconsPath = this.assetsPath + 'icons/';
-		this.templatesPath = this.assetsPath + 'templates/';
+		// 先用统一解析后的插件目录初始化；运行时会在 ensureAssetsPathResolved 自动校准
+		this.assetsPath = `${resolvePluginAssetsDir(this.app, this.manifest?.id || "zepublish")}/`;
+		this.themesPath = this.assetsPath + "themes/";
+		this.hilightPath = this.assetsPath + "highlights/";
+		this.themeCfg = this.assetsPath + "themes.json";
+		this.hilightCfg = this.assetsPath + "highlights.json";
+		this.customCSSPath = this.assetsPath + "custom.css";
+		this.iconsPath = this.assetsPath + "icons/";
+		this.templatesPath = this.assetsPath + "templates/";
+		this.assetsPathResolved = false;
+	}
+
+	private setAssetsBase(base: string) {
+		this.assetsPath = base.endsWith("/") ? base : `${base}/`;
+		this.themesPath = this.assetsPath + "themes/";
+		this.hilightPath = this.assetsPath + "highlights/";
+		this.themeCfg = this.assetsPath + "themes.json";
+		this.hilightCfg = this.assetsPath + "highlights.json";
+		this.customCSSPath = this.assetsPath + "custom.css";
+		this.iconsPath = this.assetsPath + "icons/";
+		this.templatesPath = this.assetsPath + "templates/";
+	}
+
+	private async ensureAssetsPathResolved(): Promise<void> {
+		if (this.assetsPathResolved) return;
+		const adapter = this.app.vault.adapter;
+
+		if (await adapter.exists(this.themeCfg)) {
+			this.assetsPathResolved = true;
+			return;
+		}
+
+		const candidates = [
+			this.manifest?.dir,
+			this.manifest?.id,
+			"zepublish",
+			"obsidian-zepublish",
+		].filter(Boolean) as string[];
+
+		for (const dir of candidates) {
+			const normalizedDir = String(dir).replace(/\/+$/, "");
+			const base = normalizedDir.includes("/")
+				? `${normalizedDir}/assets/`
+				: `${this.app.vault.configDir}/plugins/${normalizedDir}/assets/`;
+			if (await adapter.exists(`${base}themes.json`)) {
+				this.setAssetsBase(base);
+				this.assetsPathResolved = true;
+				logger.info(`[AssetsManager] 资源路径已自动修正: ${base}`);
+				return;
+			}
+		}
+
+		try {
+			const pluginsRoot = `${this.app.vault.configDir}/plugins`;
+			if (await adapter.exists(pluginsRoot)) {
+				const listed = await adapter.list(pluginsRoot);
+				for (const dir of listed.folders || []) {
+					const base = `${dir}/assets/`;
+					if (await adapter.exists(`${base}themes.json`)) {
+						this.setAssetsBase(base);
+						this.assetsPathResolved = true;
+						logger.info(
+							`[AssetsManager] 资源路径扫描命中: ${base}`,
+						);
+						return;
+					}
+				}
+			}
+		} catch (e) {
+			logger.warn("[AssetsManager] 自动扫描资源路径失败:", e);
+		}
 	}
 }

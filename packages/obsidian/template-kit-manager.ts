@@ -1,10 +1,10 @@
 // 为了兼容性，需要导入Modal
-import {App, Component, Modal, Notice} from 'obsidian';
-import {logger} from '../shared/src/logger';
-import LovpenPlugin from './main';
-import TemplateManager from './template-manager';
-import AssetsManager from './assets';
-import {NMPSettings} from './settings';
+import { App, Component, Modal, Notice } from "obsidian";
+import { logger } from "../shared/src/logger";
+import ZePublishPlugin from "./main";
+import TemplateManager from "./template-manager";
+import AssetsManager from "./assets";
+import { NMPSettings } from "./settings";
 import {
 	ITemplateKitManager,
 	TemplateKit,
@@ -15,40 +15,50 @@ import {
 	TemplateKitImportOptions,
 	TemplateKitManagerConfig,
 	TemplateKitOperationResult,
-	TemplateKitPreview
-} from './template-kit-types';
+	TemplateKitPreview,
+} from "./template-kit-types";
+import { resolvePluginDir } from "./plugin-paths";
 
 /**
  * 模板套装管理器
  * 提供模板套装的创建、管理、应用等功能
  */
-export default class TemplateKitManager extends Component implements ITemplateKitManager {
+export default class TemplateKitManager
+	extends Component
+	implements ITemplateKitManager
+{
 	private static instance: TemplateKitManager;
 	private app: App;
-	private plugin: LovpenPlugin;
+	private plugin: ZePublishPlugin;
 	private kitsCollection: TemplateKitCollection = {
-		version: '1.0.0',
-		kits: []
+		version: "1.0.0",
+		kits: [],
 	};
 	private config: TemplateKitManagerConfig;
-	private readonly KITS_FILE_NAME = 'template-kits.json';
+	private readonly KITS_FILE_NAME = "template-kits.json";
+	private resolvedKitsDir: string | null = null;
 
-	private constructor(app: App, plugin: LovpenPlugin) {
+	private constructor(app: App, plugin: ZePublishPlugin) {
 		super();
 		this.app = app;
 		this.plugin = plugin;
 		this.config = {
-			kitsStoragePath: 'assets',
+			kitsStoragePath: "assets",
 			enableAutoBackup: true,
 			backupRetentionDays: 30,
-			enablePreview: true
+			enablePreview: true,
 		};
 	}
 
-	public static getInstance(app?: App, plugin?: LovpenPlugin): TemplateKitManager {
+	public static getInstance(
+		app?: App,
+		plugin?: ZePublishPlugin,
+	): TemplateKitManager {
 		if (!TemplateKitManager.instance) {
 			if (!app || !plugin) {
-				throw new Error('TemplateKitManager requires app and plugin on first initialization');
+				throw new Error(
+					"TemplateKitManager requires app and plugin on first initialization",
+				);
 			}
 			TemplateKitManager.instance = new TemplateKitManager(app, plugin);
 		}
@@ -56,12 +66,12 @@ export default class TemplateKitManager extends Component implements ITemplateKi
 	}
 
 	async onload() {
-		logger.info('[TemplateKitManager] Loading template kit manager');
+		logger.info("[TemplateKitManager] Loading template kit manager");
 		await this.loadKits();
 	}
 
 	async onunload() {
-		logger.info('[TemplateKitManager] Unloading template kit manager');
+		logger.info("[TemplateKitManager] Unloading template kit manager");
 		await this.saveKits();
 	}
 
@@ -78,29 +88,34 @@ export default class TemplateKitManager extends Component implements ITemplateKi
 	 */
 	async getKitById(id: string): Promise<TemplateKit | null> {
 		const kits = await this.getAllKits();
-		return kits.find(kit => kit.basicInfo.id === id) || null;
+		return kits.find((kit) => kit.basicInfo.id === id) || null;
 	}
 
 	/**
 	 * 应用套装
 	 */
-	async applyKit(kitId: string, options: TemplateKitApplyOptions = {
-		overrideExisting: true,
-		applyStyles: true,
-		applyTemplate: true,
-		applyPlugins: true,
-		showConfirmDialog: true
-	}): Promise<TemplateKitOperationResult> {
+	async applyKit(
+		kitId: string,
+		options: TemplateKitApplyOptions = {
+			overrideExisting: true,
+			applyStyles: true,
+			applyTemplate: true,
+			applyPlugins: true,
+			showConfirmDialog: true,
+		},
+	): Promise<TemplateKitOperationResult> {
 		try {
 			const kit = await this.getKitById(kitId);
 			if (!kit) {
 				return {
 					success: false,
-					error: `Template kit with ID "${kitId}" not found`
+					error: `Template kit with ID "${kitId}" not found`,
 				};
 			}
 
-			logger.info(`[TemplateKitManager] Applying kit: ${kit.basicInfo.name}`);
+			logger.info(
+				`[TemplateKitManager] Applying kit: ${kit.basicInfo.name}`,
+			);
 
 			// 显示确认对话框
 			if (options.showConfirmDialog) {
@@ -108,7 +123,7 @@ export default class TemplateKitManager extends Component implements ITemplateKi
 				if (!confirmed) {
 					return {
 						success: false,
-						error: 'User cancelled the operation'
+						error: "User cancelled the operation",
 					};
 				}
 			}
@@ -123,12 +138,20 @@ export default class TemplateKitManager extends Component implements ITemplateKi
 
 			// 应用样式配置
 			if (options.applyStyles) {
-				await this.applyStyleConfig(kit, settingsManager, assetsManager);
+				await this.applyStyleConfig(
+					kit,
+					settingsManager,
+					assetsManager,
+				);
 			}
 
 			// 应用模板配置
 			if (options.applyTemplate) {
-				await this.applyTemplateConfig(kit, settingsManager, templateManager);
+				await this.applyTemplateConfig(
+					kit,
+					settingsManager,
+					templateManager,
+				);
 			}
 
 			// 应用插件配置
@@ -144,55 +167,70 @@ export default class TemplateKitManager extends Component implements ITemplateKi
 			const styleConfig = kit.styleConfig;
 			setTimeout(() => {
 				// 清理所有可能的CSS变量和样式残留
-				const containers = document.querySelectorAll('.lovpen, .lovpen-renderer, .wabi-sabi-container');
-				containers.forEach(container => {
+				const containers = document.querySelectorAll(
+					".zepublish, .zepublish-renderer, .wabi-sabi-container",
+				);
+				containers.forEach((container) => {
 					if (container instanceof HTMLElement) {
 						// 清除所有可能的主题色变量
 						container.style.removeProperty("--primary-color");
 						container.style.removeProperty("--theme-color-light");
 						container.style.removeProperty("--colors-primary");
-						
+
 						// 移除所有可能的内联样式 - 这些通常来自之前的主题
-						const elementsWithInlineStyles = container.querySelectorAll('[style*="!important"], [style*="rgb(200, 100, 66)"], [style*="background"], [style*="color"]');
-						elementsWithInlineStyles.forEach(el => {
+						const elementsWithInlineStyles =
+							container.querySelectorAll(
+								'[style*="!important"], [style*="rgb(200, 100, 66)"], [style*="background"], [style*="color"]',
+							);
+						elementsWithInlineStyles.forEach((el) => {
 							if (el instanceof HTMLElement) {
 								// 清除与颜色相关的内联样式
 								el.style.removeProperty("background");
 								el.style.removeProperty("background-color");
 								el.style.removeProperty("color");
 								// 如果style属性现在为空，完全移除它
-								if (!el.getAttribute('style')?.trim()) {
-									el.removeAttribute('style');
+								if (!el.getAttribute("style")?.trim()) {
+									el.removeAttribute("style");
 								}
 							}
 						});
-						
+
 						// 如果套装启用了自定义主题色，重新应用
-						if (styleConfig.enableCustomThemeColor && styleConfig.customThemeColor) {
-							container.style.setProperty("--primary-color", styleConfig.customThemeColor);
+						if (
+							styleConfig.enableCustomThemeColor &&
+							styleConfig.customThemeColor
+						) {
+							container.style.setProperty(
+								"--primary-color",
+								styleConfig.customThemeColor,
+							);
 						}
 					}
 				});
-				
+
 				// 强制重新渲染页面，确保样式完全更新
-				document.body.style.display = 'none';
+				document.body.style.display = "none";
 				document.body.offsetHeight; // 触发重排
-				document.body.style.display = '';
-				
+				document.body.style.display = "";
+
 				logger.info(`[TemplateKitManager] CSS变量和样式清理完成`);
 			}, 150);
 
-			new Notice(`Template kit "${kit.basicInfo.name}" applied successfully!`);
+			new Notice(
+				`Template kit "${kit.basicInfo.name}" applied successfully!`,
+			);
 
 			return {
 				success: true,
-				data: kit
+				data: kit,
 			};
 		} catch (error) {
-			logger.error('[TemplateKitManager] Error applying kit:', error);
+			logger.error("[TemplateKitManager] Error applying kit:", error);
 			return {
 				success: false,
-				error: error.message || 'Unknown error occurred while applying kit'
+				error:
+					error.message ||
+					"Unknown error occurred while applying kit",
 			};
 		}
 	}
@@ -207,7 +245,7 @@ export default class TemplateKitManager extends Component implements ITemplateKi
 			if (existingKit) {
 				return {
 					success: false,
-					error: `Template kit with ID "${kit.basicInfo.id}" already exists`
+					error: `Template kit with ID "${kit.basicInfo.id}" already exists`,
 				};
 			}
 
@@ -221,18 +259,24 @@ export default class TemplateKitManager extends Component implements ITemplateKi
 			// 保存
 			await this.saveKits();
 
-			logger.info(`[TemplateKitManager] Created kit: ${kit.basicInfo.name}`);
-			new Notice(`Template kit "${kit.basicInfo.name}" created successfully!`);
+			logger.info(
+				`[TemplateKitManager] Created kit: ${kit.basicInfo.name}`,
+			);
+			new Notice(
+				`Template kit "${kit.basicInfo.name}" created successfully!`,
+			);
 
 			return {
 				success: true,
-				data: kit
+				data: kit,
 			};
 		} catch (error) {
-			logger.error('[TemplateKitManager] Error creating kit:', error);
+			logger.error("[TemplateKitManager] Error creating kit:", error);
 			return {
 				success: false,
-				error: error.message || 'Unknown error occurred while creating kit'
+				error:
+					error.message ||
+					"Unknown error occurred while creating kit",
 			};
 		}
 	}
@@ -240,13 +284,18 @@ export default class TemplateKitManager extends Component implements ITemplateKi
 	/**
 	 * 更新套装
 	 */
-	async updateKit(kitId: string, updates: Partial<TemplateKit>): Promise<TemplateKitOperationResult> {
+	async updateKit(
+		kitId: string,
+		updates: Partial<TemplateKit>,
+	): Promise<TemplateKitOperationResult> {
 		try {
-			const kitIndex = this.kitsCollection.kits.findIndex(kit => kit.basicInfo.id === kitId);
+			const kitIndex = this.kitsCollection.kits.findIndex(
+				(kit) => kit.basicInfo.id === kitId,
+			);
 			if (kitIndex === -1) {
 				return {
 					success: false,
-					error: `Template kit with ID "${kitId}" not found`
+					error: `Template kit with ID "${kitId}" not found`,
 				};
 			}
 
@@ -259,8 +308,8 @@ export default class TemplateKitManager extends Component implements ITemplateKi
 					...currentKit.basicInfo,
 					...(updates.basicInfo || {}),
 					id: kitId, // 确保ID不被更改
-					updatedAt: new Date().toISOString()
-				}
+					updatedAt: new Date().toISOString(),
+				},
 			};
 
 			this.kitsCollection.kits[kitIndex] = updatedKit;
@@ -268,18 +317,24 @@ export default class TemplateKitManager extends Component implements ITemplateKi
 			// 保存
 			await this.saveKits();
 
-			logger.info(`[TemplateKitManager] Updated kit: ${updatedKit.basicInfo.name}`);
-			new Notice(`Template kit "${updatedKit.basicInfo.name}" updated successfully!`);
+			logger.info(
+				`[TemplateKitManager] Updated kit: ${updatedKit.basicInfo.name}`,
+			);
+			new Notice(
+				`Template kit "${updatedKit.basicInfo.name}" updated successfully!`,
+			);
 
 			return {
 				success: true,
-				data: updatedKit
+				data: updatedKit,
 			};
 		} catch (error) {
-			logger.error('[TemplateKitManager] Error updating kit:', error);
+			logger.error("[TemplateKitManager] Error updating kit:", error);
 			return {
 				success: false,
-				error: error.message || 'Unknown error occurred while updating kit'
+				error:
+					error.message ||
+					"Unknown error occurred while updating kit",
 			};
 		}
 	}
@@ -289,11 +344,13 @@ export default class TemplateKitManager extends Component implements ITemplateKi
 	 */
 	async deleteKit(kitId: string): Promise<TemplateKitOperationResult> {
 		try {
-			const kitIndex = this.kitsCollection.kits.findIndex(kit => kit.basicInfo.id === kitId);
+			const kitIndex = this.kitsCollection.kits.findIndex(
+				(kit) => kit.basicInfo.id === kitId,
+			);
 			if (kitIndex === -1) {
 				return {
 					success: false,
-					error: `Template kit with ID "${kitId}" not found`
+					error: `Template kit with ID "${kitId}" not found`,
 				};
 			}
 
@@ -303,18 +360,24 @@ export default class TemplateKitManager extends Component implements ITemplateKi
 			// 保存
 			await this.saveKits();
 
-			logger.info(`[TemplateKitManager] Deleted kit: ${kit.basicInfo.name}`);
-			new Notice(`Template kit "${kit.basicInfo.name}" deleted successfully!`);
+			logger.info(
+				`[TemplateKitManager] Deleted kit: ${kit.basicInfo.name}`,
+			);
+			new Notice(
+				`Template kit "${kit.basicInfo.name}" deleted successfully!`,
+			);
 
 			return {
 				success: true,
-				data: kit
+				data: kit,
 			};
 		} catch (error) {
-			logger.error('[TemplateKitManager] Error deleting kit:', error);
+			logger.error("[TemplateKitManager] Error deleting kit:", error);
 			return {
 				success: false,
-				error: error.message || 'Unknown error occurred while deleting kit'
+				error:
+					error.message ||
+					"Unknown error occurred while deleting kit",
 			};
 		}
 	}
@@ -322,18 +385,21 @@ export default class TemplateKitManager extends Component implements ITemplateKi
 	/**
 	 * 导出套装
 	 */
-	async exportKit(kitId: string, options: TemplateKitExportOptions = {
-		includeTemplateFiles: true,
-		includeThemeFiles: true,
-		includePreviewImage: true,
-		exportFormat: 'json'
-	}): Promise<TemplateKitOperationResult> {
+	async exportKit(
+		kitId: string,
+		options: TemplateKitExportOptions = {
+			includeTemplateFiles: true,
+			includeThemeFiles: true,
+			includePreviewImage: true,
+			exportFormat: "json",
+		},
+	): Promise<TemplateKitOperationResult> {
 		try {
 			const kit = await this.getKitById(kitId);
 			if (!kit) {
 				return {
 					success: false,
-					error: `Template kit with ID "${kitId}" not found`
+					error: `Template kit with ID "${kitId}" not found`,
 				};
 			}
 
@@ -341,24 +407,28 @@ export default class TemplateKitManager extends Component implements ITemplateKi
 			const exportData = {
 				kit,
 				exportedAt: new Date().toISOString(),
-				exportOptions: options
+				exportOptions: options,
 			};
 
 			// 如果需要包含文件，在这里处理文件读取逻辑
 			if (options.includeTemplateFiles || options.includeThemeFiles) {
 				// 这里可以扩展为读取实际文件内容
-				logger.info('[TemplateKitManager] File inclusion not yet implemented');
+				logger.info(
+					"[TemplateKitManager] File inclusion not yet implemented",
+				);
 			}
 
 			return {
 				success: true,
-				data: exportData
+				data: exportData,
 			};
 		} catch (error) {
-			logger.error('[TemplateKitManager] Error exporting kit:', error);
+			logger.error("[TemplateKitManager] Error exporting kit:", error);
 			return {
 				success: false,
-				error: error.message || 'Unknown error occurred while exporting kit'
+				error:
+					error.message ||
+					"Unknown error occurred while exporting kit",
 			};
 		}
 	}
@@ -366,17 +436,20 @@ export default class TemplateKitManager extends Component implements ITemplateKi
 	/**
 	 * 导入套装
 	 */
-	async importKit(kitData: any, options: TemplateKitImportOptions = {
-		overrideExisting: false,
-		validateIntegrity: true,
-		autoApply: false
-	}): Promise<TemplateKitOperationResult> {
+	async importKit(
+		kitData: any,
+		options: TemplateKitImportOptions = {
+			overrideExisting: false,
+			validateIntegrity: true,
+			autoApply: false,
+		},
+	): Promise<TemplateKitOperationResult> {
 		try {
 			// 验证导入数据
 			if (!kitData.kit || !kitData.kit.basicInfo) {
 				return {
 					success: false,
-					error: 'Invalid kit data format'
+					error: "Invalid kit data format",
 				};
 			}
 
@@ -387,7 +460,7 @@ export default class TemplateKitManager extends Component implements ITemplateKi
 			if (existingKit && !options.overrideExisting) {
 				return {
 					success: false,
-					error: `Template kit with ID "${kit.basicInfo.id}" already exists`
+					error: `Template kit with ID "${kit.basicInfo.id}" already exists`,
 				};
 			}
 
@@ -418,10 +491,12 @@ export default class TemplateKitManager extends Component implements ITemplateKi
 
 			return result;
 		} catch (error) {
-			logger.error('[TemplateKitManager] Error importing kit:', error);
+			logger.error("[TemplateKitManager] Error importing kit:", error);
 			return {
 				success: false,
-				error: error.message || 'Unknown error occurred while importing kit'
+				error:
+					error.message ||
+					"Unknown error occurred while importing kit",
 			};
 		}
 	}
@@ -429,7 +504,10 @@ export default class TemplateKitManager extends Component implements ITemplateKi
 	/**
 	 * 生成套装预览
 	 */
-	async generatePreview(kitId: string, content: string): Promise<TemplateKitPreview> {
+	async generatePreview(
+		kitId: string,
+		content: string,
+	): Promise<TemplateKitPreview> {
 		const kit = await this.getKitById(kitId);
 		if (!kit) {
 			throw new Error(`Template kit with ID "${kitId}" not found`);
@@ -444,14 +522,16 @@ export default class TemplateKitManager extends Component implements ITemplateKi
 			kitId,
 			previewHtml,
 			previewCss,
-			generatedAt: new Date().toISOString()
+			generatedAt: new Date().toISOString(),
 		};
 	}
 
 	/**
 	 * 从当前设置创建套装
 	 */
-	async createKitFromCurrentSettings(basicInfo: TemplateKitBasicInfo): Promise<TemplateKitOperationResult> {
+	async createKitFromCurrentSettings(
+		basicInfo: TemplateKitBasicInfo,
+	): Promise<TemplateKitOperationResult> {
 		try {
 			const settingsManager = this.plugin.settings;
 			const settings = settingsManager.getAllSettings();
@@ -459,30 +539,40 @@ export default class TemplateKitManager extends Component implements ITemplateKi
 			const kit: TemplateKit = {
 				basicInfo,
 				styleConfig: {
-					theme: String(settings.defaultStyle || 'bento'),
-					codeHighlight: String(settings.defaultHighlight || 'github'),
+					theme: String(settings.defaultStyle || "bento"),
+					codeHighlight: String(
+						settings.defaultHighlight || "github",
+					),
 					cssVariables: {},
-					enableCustomThemeColor: Boolean(settings.enableThemeColor || false),
-					customThemeColor: String(settings.themeColor || ''),
-					customCSS: ''
+					enableCustomThemeColor: Boolean(
+						settings.enableThemeColor || false,
+					),
+					customThemeColor: String(settings.themeColor || ""),
+					customCSS: "",
 				},
 				templateConfig: {
-					templateFileName: String(settings.defaultTemplate || ''),
-					useTemplate: Boolean(settings.useTemplate || false)
+					templateFileName: String(settings.defaultTemplate || ""),
+					useTemplate: Boolean(settings.useTemplate || false),
 				},
 				pluginConfig: {
 					enabledMarkdownPlugins: [],
 					enabledHtmlPlugins: [],
-					pluginSettings: (settings.pluginsConfig as Record<string, any>) || {}
-				}
+					pluginSettings:
+						(settings.pluginsConfig as Record<string, any>) || {},
+				},
 			};
 
 			return await this.createKit(kit);
 		} catch (error) {
-			logger.error('[TemplateKitManager] Error creating kit from current settings:', error);
+			logger.error(
+				"[TemplateKitManager] Error creating kit from current settings:",
+				error,
+			);
 			return {
 				success: false,
-				error: error.message || 'Unknown error occurred while creating kit from current settings'
+				error:
+					error.message ||
+					"Unknown error occurred while creating kit from current settings",
 			};
 		}
 	}
@@ -491,26 +581,32 @@ export default class TemplateKitManager extends Component implements ITemplateKi
 
 	private async loadKits(): Promise<void> {
 		try {
-			const pluginDir = (this.app as any).plugins.plugins["lovpen"].manifest.dir;
-			const kitsFile = `${pluginDir}/${this.config.kitsStoragePath}/${this.KITS_FILE_NAME}`;
+			const kitsDir = await this.resolveKitsDir();
+			const kitsFile = `${kitsDir}/${this.KITS_FILE_NAME}`;
 
-			logger.info(`[TemplateKitManager] Trying to load kits from: ${kitsFile}`);
+			logger.info(
+				`[TemplateKitManager] Trying to load kits from: ${kitsFile}`,
+			);
 			const content = await this.app.vault.adapter.read(kitsFile);
 			this.kitsCollection = JSON.parse(content);
-			logger.info(`[TemplateKitManager] Loaded ${this.kitsCollection.kits.length} kits`);
+			logger.info(
+				`[TemplateKitManager] Loaded ${this.kitsCollection.kits.length} kits`,
+			);
 		} catch (error) {
-			logger.warn(`[TemplateKitManager] Could not load kits, using default collection:`, error);
+			logger.warn(
+				`[TemplateKitManager] Could not load kits, using default collection:`,
+				error,
+			);
 			this.kitsCollection = this.getDefaultKitsCollection();
 		}
 	}
 
 	private async saveKits(): Promise<void> {
 		try {
-			const pluginDir = (this.app as any).plugins.plugins["lovpen"].manifest.dir;
-			const kitsDir = `${pluginDir}/${this.config.kitsStoragePath}`;
+			const kitsDir = await this.resolveKitsDir();
 
 			// 确保目录存在
-			if (!await this.app.vault.adapter.exists(kitsDir)) {
+			if (!(await this.app.vault.adapter.exists(kitsDir))) {
 				await this.app.vault.adapter.mkdir(kitsDir);
 			}
 
@@ -518,20 +614,25 @@ export default class TemplateKitManager extends Component implements ITemplateKi
 			const content = JSON.stringify(this.kitsCollection, null, 2);
 			await this.app.vault.adapter.write(kitsFile, content);
 
-			logger.info(`[TemplateKitManager] Saved ${this.kitsCollection.kits.length} kits`);
+			logger.info(
+				`[TemplateKitManager] Saved ${this.kitsCollection.kits.length} kits`,
+			);
 		} catch (error) {
-			logger.error('[TemplateKitManager] Error saving kits:', error);
+			logger.error("[TemplateKitManager] Error saving kits:", error);
 			throw error;
 		}
 	}
 
-
-	private async applyStyleConfig(kit: TemplateKit, settingsManager: NMPSettings, assetsManager: any): Promise<void> {
+	private async applyStyleConfig(
+		kit: TemplateKit,
+		settingsManager: NMPSettings,
+		assetsManager: any,
+	): Promise<void> {
 		const styleConfig = kit.styleConfig;
 
 		// 先清理之前的样式设置
 		settingsManager.enableThemeColor = false;
-		settingsManager.themeColor = '#7852ee'; // 重置为默认值
+		settingsManager.themeColor = "#7852ee"; // 重置为默认值
 		settingsManager.useCustomCss = false;
 
 		// 应用主题
@@ -541,7 +642,10 @@ export default class TemplateKitManager extends Component implements ITemplateKi
 		settingsManager.defaultHighlight = styleConfig.codeHighlight;
 
 		// 应用自定义主题色
-		if (styleConfig.enableCustomThemeColor && styleConfig.customThemeColor) {
+		if (
+			styleConfig.enableCustomThemeColor &&
+			styleConfig.customThemeColor
+		) {
 			settingsManager.enableThemeColor = true;
 			settingsManager.themeColor = styleConfig.customThemeColor;
 		} else {
@@ -550,26 +654,40 @@ export default class TemplateKitManager extends Component implements ITemplateKi
 
 		// 清理CSS变量（在套装应用时重置）
 		// 这会在下次渲染时清除之前的CSS变量
-		
-		logger.info(`[TemplateKitManager] Applied style configuration: theme=${styleConfig.theme}, enableThemeColor=${settingsManager.enableThemeColor}`);
+
+		logger.info(
+			`[TemplateKitManager] Applied style configuration: theme=${styleConfig.theme}, enableThemeColor=${settingsManager.enableThemeColor}`,
+		);
 	}
 
-	private async applyTemplateConfig(kit: TemplateKit, settingsManager: NMPSettings, templateManager: any): Promise<void> {
+	private async applyTemplateConfig(
+		kit: TemplateKit,
+		settingsManager: NMPSettings,
+		templateManager: any,
+	): Promise<void> {
 		const templateConfig = kit.templateConfig;
 
 		// 应用模板设置
 		settingsManager.useTemplate = templateConfig.useTemplate;
 		if (templateConfig.templateFileName) {
 			// 去掉.html扩展名，因为TemplateManager中存储的key不包含扩展名
-			const templateName = templateConfig.templateFileName.replace('.html', '');
+			const templateName = templateConfig.templateFileName.replace(
+				".html",
+				"",
+			);
 			settingsManager.defaultTemplate = templateName;
-			logger.info(`[TemplateKitManager] Set template to: ${templateName}`);
+			logger.info(
+				`[TemplateKitManager] Set template to: ${templateName}`,
+			);
 		}
 
-		logger.info('[TemplateKitManager] Applied template configuration');
+		logger.info("[TemplateKitManager] Applied template configuration");
 	}
 
-	private async applyPluginConfig(kit: TemplateKit, settingsManager: NMPSettings): Promise<void> {
+	private async applyPluginConfig(
+		kit: TemplateKit,
+		settingsManager: NMPSettings,
+	): Promise<void> {
 		const pluginConfig = kit.pluginConfig;
 
 		// 应用插件配置
@@ -577,7 +695,7 @@ export default class TemplateKitManager extends Component implements ITemplateKi
 			settingsManager.pluginsConfig = pluginConfig.pluginSettings;
 		}
 
-		logger.info('[TemplateKitManager] Applied plugin configuration');
+		logger.info("[TemplateKitManager] Applied plugin configuration");
 	}
 
 	private async showApplyConfirmDialog(kit: TemplateKit): Promise<boolean> {
@@ -592,25 +710,77 @@ export default class TemplateKitManager extends Component implements ITemplateKi
 		if (!kit.basicInfo || !kit.basicInfo.id || !kit.basicInfo.name) {
 			return {
 				success: false,
-				error: 'Kit must have basic info with id and name'
+				error: "Kit must have basic info with id and name",
 			};
 		}
 
 		if (!kit.styleConfig || !kit.templateConfig || !kit.pluginConfig) {
 			return {
 				success: false,
-				error: 'Kit must have complete configuration'
+				error: "Kit must have complete configuration",
 			};
 		}
 
-		return {success: true};
+		return { success: true };
 	}
 
 	private getDefaultKitsCollection(): TemplateKitCollection {
 		return {
-			version: '1.0.0',
-			kits: []
+			version: "1.0.0",
+			kits: [],
 		};
+	}
+
+	private async resolveKitsDir(): Promise<string> {
+		if (this.resolvedKitsDir) {
+			return this.resolvedKitsDir;
+		}
+
+		const adapter = this.app.vault.adapter;
+		const plugin =
+			(this.app as any).plugins?.plugins?.["ze-publisher"] ||
+			(this.app as any).plugins?.plugins?.["zepublish"];
+		const manifestDir = String(plugin?.manifest?.dir || "").replace(
+			/\/+$/,
+			"",
+		);
+		const manifestId = String(plugin?.manifest?.id || "zepublish");
+		const candidates: string[] = [];
+		const resolvedPluginDir = resolvePluginDir(this.app, manifestId);
+
+		candidates.push(`${resolvedPluginDir}/${this.config.kitsStoragePath}`);
+		if (manifestDir) {
+			const normalizedDir = manifestDir.includes("/")
+				? manifestDir
+				: `${this.app.vault.configDir}/plugins/${manifestDir}`;
+			candidates.push(`${normalizedDir}/${this.config.kitsStoragePath}`);
+		}
+		candidates.push(
+			`${this.app.vault.configDir}/plugins/${manifestId}/${this.config.kitsStoragePath}`,
+		);
+		// 保留旧目录作为迁移兼容（旧插件 ID: zepublish）
+		candidates.push(
+			`${this.app.vault.configDir}/plugins/zepublish/${this.config.kitsStoragePath}`,
+		);
+
+		for (const dir of candidates) {
+			const kitsFile = `${dir}/${this.KITS_FILE_NAME}`;
+			if (await adapter.exists(kitsFile)) {
+				this.resolvedKitsDir = dir;
+				logger.info(`[TemplateKitManager] Resolved kits dir: ${dir}`);
+				return dir;
+			}
+		}
+
+		const fallback = candidates[0];
+		if (!(await adapter.exists(fallback))) {
+			await adapter.mkdir(fallback);
+		}
+		this.resolvedKitsDir = fallback;
+		logger.info(
+			`[TemplateKitManager] Using kits dir fallback: ${fallback}`,
+		);
+		return fallback;
 	}
 }
 
@@ -621,35 +791,51 @@ class ApplyKitConfirmModal extends Modal {
 	private kit: TemplateKit;
 	private onConfirm: (confirmed: boolean) => void;
 
-	constructor(app: App, kit: TemplateKit, onConfirm: (confirmed: boolean) => void) {
+	constructor(
+		app: App,
+		kit: TemplateKit,
+		onConfirm: (confirmed: boolean) => void,
+	) {
 		super(app);
 		this.kit = kit;
 		this.onConfirm = onConfirm;
 	}
 
 	onOpen() {
-		const {contentEl} = this;
+		const { contentEl } = this;
 		contentEl.empty();
 
-		contentEl.createEl('h2', {text: `Apply Template Kit: ${this.kit.basicInfo.name}`});
-		contentEl.createEl('p', {text: this.kit.basicInfo.description});
+		contentEl.createEl("h2", {
+			text: `Apply Template Kit: ${this.kit.basicInfo.name}`,
+		});
+		contentEl.createEl("p", { text: this.kit.basicInfo.description });
 
-		const warningEl = contentEl.createEl('div', {cls: 'lovpen-warning'});
-		warningEl.createEl('p', {text: 'This will override your current settings. Continue?'});
+		const warningEl = contentEl.createEl("div", {
+			cls: "zepublish-warning",
+		});
+		warningEl.createEl("p", {
+			text: "This will override your current settings. Continue?",
+		});
 
-		const buttonContainer = contentEl.createEl('div', {cls: 'lovpen-modal-buttons'});
+		const buttonContainer = contentEl.createEl("div", {
+			cls: "zepublish-modal-buttons",
+		});
 
-		const cancelButton = buttonContainer.createEl('button', {text: 'Cancel'});
+		const cancelButton = buttonContainer.createEl("button", {
+			text: "Cancel",
+		});
 		cancelButton.onclick = () => {
 			this.onConfirm(false);
 			this.close();
 		};
 
-		const confirmButton = buttonContainer.createEl('button', {text: 'Apply Kit', cls: 'lovpen-primary-button'});
+		const confirmButton = buttonContainer.createEl("button", {
+			text: "Apply Kit",
+			cls: "zepublish-primary-button",
+		});
 		confirmButton.onclick = () => {
 			this.onConfirm(true);
 			this.close();
 		};
 	}
 }
-

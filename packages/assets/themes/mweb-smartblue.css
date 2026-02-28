@@ -1,228 +1,173 @@
-.lovpen-renderer  {
-	color: #595959;
-	font-size: 15px;
-	font-family: -apple-system, system-ui, BlinkMacSystemFont, Helvetica Neue, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Arial, sans-serif;
-	background-image: linear-gradient(90deg, rgba(60, 10, 30, 0.04) 3%, rgba(0, 0, 0, 0) 3%), linear-gradient(360deg, rgba(60, 10, 30, 0.04) 3%, rgba(0, 0, 0, 0) 3%);
-	background-size: 20px 20px;
-	background-position: center center;
-	padding: 1em;
-	/* 段落 */
-	/* 段落间距控制 */
-	/* 标题的通用设置 */
-	/* 一级标题 */
-	/* 二级标题 */
-	/* 三级标题 */
-	/* 无序列表 */
-	/* 无序列表内容 */
-	/* 已加载图片 */
-	/* 引用 */
-	/* 引用文字 */
-	/* 链接 */
-	/* 加粗 */
-	/* 加粗斜体 */
-	/* 分隔线 */
-	/* 表格 */
-	/* 代码 */
+.note-to-mp {
+  color: #595959;
+  font-size: 15px;
+  background-image: linear-gradient(90deg, rgba(60, 10, 30, 0.04) 3%, rgba(0, 0, 0, 0) 3%), linear-gradient(360deg, rgba(60, 10, 30, 0.04) 3%, rgba(0, 0, 0, 0) 3%);
+  background-size: 20px 20px;
+  background-position: center center;
+  padding: 1em;
+  /* 段落 */
+  /* 段落间距控制 */
+  /* 标题的通用设置 */
+  /* 一级标题 */
+  /* 二级标题 */
+  /* 三级标题 */
+  /* 无序列表 */
+  /* 无序列表内容 */
+  /* 引用 */
+  /* 引用文字 */
+  /* 链接 */
+  /* 加粗 */
+  /* 加粗斜体 */
+  /* 分隔线 */
+  /* 表格 */
+}
+.note-to-mp p {
+  color: #595959;
+  font-size: 15px;
+  line-height: 2;
+  font-weight: 400;
+}
+.note-to-mp p + p {
+  margin-top: 16px;
+}
+.note-to-mp h1,
+.note-to-mp h2,
+.note-to-mp h3,
+.note-to-mp h4,
+.note-to-mp h5,
+.note-to-mp h6 {
+  padding: 30px 0;
+  margin: 0;
+  color: #135ce0;
+  font-weight: 600;
+}
+.note-to-mp h1 {
+  position: relative;
+  text-align: center;
+  font-size: 22px;
+  margin: 50px 0;
+}
+.note-to-mp h2 {
+  position: relative;
+  font-size: 20px;
+  border-left: 4px solid;
+  padding: 0 0 0 10px;
+  margin: 30px 0;
+}
+.note-to-mp h3 {
+  font-size: 16px;
+}
+.note-to-mp ul {
+  list-style: disc outside;
+  margin-left: 2em;
+  margin-top: 1em;
+}
+.note-to-mp li {
+  line-height: 2;
+  color: #595959;
+  margin-bottom: 0;
+  list-style: inherit;
+}
+.note-to-mp img {
+  max-width: 100%;
+}
+.note-to-mp blockquote {
+  background: #fff9f9;
+  margin: 2em 0;
+  padding: 2px 20px;
+  border-left: 4px solid #b2aec5;
+}
+.note-to-mp blockquote p {
+  color: #666;
+  line-height: 2;
+}
+.note-to-mp a {
+  color: #036aca;
+  border-bottom: 1px solid rgba(3, 106, 202, 0.8);
+  font-weight: 400;
+  text-decoration: none;
+}
+.note-to-mp strong {
+  color: #036aca;
+}
+.note-to-mp em strong {
+  color: #036aca;
+}
+.note-to-mp hr {
+  border-top: 1px solid #135ce0;
+}
+.note-to-mp table {
+  border-collapse: collapse;
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+.note-to-mp table th,
+.note-to-mp table td {
+  border: 1px solid #dfe2e5;
+  padding: 0.6em 1em;
+}
+.note-to-mp table tr {
+  border-top: 1px solid #dfe2e5;
+}
+.note-to-mp table tr:nth-child(2n) {
+  background-color: #f6f8fa;
+}
+.note-to-mp .footnotes hr {
+  margin-bottom: 0.5em;
+}
+.note-to-mp code {
+  word-break: break-word;
+  border-radius: 2px;
+  background-color: #fff5f5;
+  color: #ff502c;
+  font-size: 0.87em;
+  padding: 0.065em 0.4em;
+}
+.note-to-mp .code-section pre code {
+  border: none;
+  background-color: transparent;
+  font-size: inherit;
+  padding: 0 !important;
+  margin: 0 !important;
+  text-wrap: nowrap;
+}
+.note-to-mp .code-section ul li {
+  line-height: inherit;
 }
 
-.lovpen-renderer  p {
-	color: #595959;
-	font-size: 15px;
-	line-height: 2;
-	font-weight: 400;
+/* 代码块 */
+.note-to-mp .code-section {
+  display: flex;
+  border: solid 1px #ff502c;
+  margin: 1.5em 0;
+  line-height: 26px;
+  padding: 0.5em;
+  font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
 }
-
-.lovpen-renderer  p + p {
-	margin-top: 16px;
+.note-to-mp .code-section pre {
+  margin: 0;
+  margin-block-start: 0;
+  margin-block-end: 0;
+  white-space: normal;
+  overflow-x: auto;
+  padding: 0 0 0 1em;
 }
-
-.lovpen-renderer  h1,
-.lovpen-renderer  h2,
-.lovpen-renderer  h3,
-.lovpen-renderer  h4,
-.lovpen-renderer  h5,
-.lovpen-renderer  h6 {
-	padding: 30px 0;
-	margin: 0;
-	color: #135ce0;
-	font-weight: 600;
+.note-to-mp .code-section code {
+  display: flex;
+  text-wrap: nowrap;
+  font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
 }
-
-.lovpen-renderer  h1 {
-	position: relative;
-	text-align: center;
-	font-size: 22px;
-	margin: 50px 0;
+.note-to-mp .code-section ul {
+  margin: 0;
+  padding: 0;
+  margin-block-start: 0;
+  margin-block-end: 0;
+  width: fit-content;
+  flex-shrink: 0;
+  height: 100%;
+  line-height: 26px;
+  list-style-type: none;
 }
-
-.lovpen-renderer  h2 {
-	position: relative;
-	font-size: 20px;
-	border-left: 4px solid;
-	padding: 0 0 0 10px;
-	margin: 30px 0;
-}
-
-.lovpen-renderer  h3 {
-	font-size: 16px;
-}
-
-.lovpen-renderer  ul {
-	list-style: disc outside;
-	padding-left: 2em;
-	margin-top: 1em;
-}
-
-.lovpen-renderer  li {
-	line-height: 2;
-	color: #595959;
-	margin-bottom: 0;
-	list-style: inherit;
-}
-
-.lovpen-renderer  img {
-	max-width: 100%;
-}
-
-.lovpen-renderer  img.loaded {
-	margin: 0 auto;
-	display: block;
-}
-
-.lovpen-renderer  blockquote {
-	background: #fff9f9;
-	margin: 2em 0;
-	padding: 2px 20px;
-	border-left: 4px solid #b2aec5;
-}
-
-.lovpen-renderer  blockquote p {
-	color: #666;
-	line-height: 2;
-}
-
-.lovpen-renderer  a {
-	color: #036aca;
-	border-bottom: 1px solid rgba(3, 106, 202, 0.8);
-	font-weight: 400;
-	text-decoration: none;
-}
-
-.lovpen-renderer  strong {
-	color: #036aca;
-}
-
-.lovpen-renderer  em strong {
-	color: #036aca;
-}
-
-.lovpen-renderer  hr {
-	border-top: 1px solid #135ce0;
-}
-
-.lovpen-renderer  table {
-	border-collapse: collapse;
-	margin: 1rem 0;
-	overflow-x: auto;
-}
-
-.lovpen-renderer  table th,
-.lovpen-renderer  table td {
-	border: 1px solid #dfe2e5;
-	padding: 0.6em 1em;
-}
-
-.lovpen-renderer  table tr {
-	border-top: 1px solid #dfe2e5;
-}
-
-.lovpen-renderer  table tr:nth-child(2n) {
-	background-color: #f6f8fa;
-}
-
-.lovpen-renderer  .footnotes hr {
-	margin-bottom: 0.5em;
-}
-
-.lovpen-renderer  pre {
-	overflow: auto;
-}
-
-.lovpen-renderer  pre,
-.lovpen-renderer  code {
-	overflow: auto;
-	position: relative;
-	line-height: 1.75;
-	font-family: Menlo, Monaco, Consolas, Courier New, monospace;
-}
-
-.lovpen-renderer  pre > code {
-	/* font-size: 12px; */
-	padding: 15px 12px;
-	margin: 0;
-	word-break: normal;
-	display: block;
-	overflow-x: auto;
-	color: #333;
-	background: #f8f8f8;
-}
-
-.lovpen-renderer  code {
-	word-break: break-word;
-	border-radius: 2px;
-	overflow-x: auto;
-	background-color: #fff5f5;
-	color: #ff502c;
-	font-size: 0.87em;
-	padding: 0.065em 0.4em;
-}
-
-.lovpen-renderer  .code-section {
-	display: flex;
-	background: #f8f8f8;
-}
-
-.lovpen-renderer  .code-section pre {
-	margin: 0;
-	display: block;
-	padding: 1em;
-	overflow-x: auto;
-}
-
-.lovpen-renderer  .code-section pre code {
-	border: none;
-	background: #f8f8f8;
-	font-size: 1em;
-	line-height: 1.8em;
-	padding: 0 !important;
-	margin: 0 !important;
-	text-wrap: nowrap;
-}
-
-.lovpen-renderer  .code-section ul {
-	flex-shrink: 0;
-	counter-reset: line;
-	margin: 0;
-	padding: 1em 0 1em 1em;
-	white-space: normal;
-	width: fit-content;
-}
-
-.lovpen-renderer  .code-section ul > li {
-	position: relative;
-	margin: 0;
-	padding: 0;
-	display: list-item;
-	text-align: right;
-	line-height: 1.8em;
-	font-size: 1em;
-	font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
-	padding: 0;
-	list-style-type: none;
-	color: #ff502c;
-	text-wrap: nowrap;
-}
-
-.lovpen-renderer  .code-section ul > li::marker {
-	content: none;
+.note-to-mp .code-section ul > li {
+  text-align: right;
 }

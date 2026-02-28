@@ -12,7 +12,7 @@ import { logger } from './logger';
 export const SCREENSHOT_ELEMENT_SELECTORS = [
 	{
 		selector: '.claude-main-content',
-		description: '包含模板的完整内容：meta + lovpen',
+		description: '包含模板的完整内容：meta + zepublish',
 		includesTemplate: true,
 	},
 	{
@@ -21,12 +21,12 @@ export const SCREENSHOT_ELEMENT_SELECTORS = [
 		includesTemplate: true,
 	},
 	{
-		selector: '.lovpen',
+		selector: '.zepublish',
 		description: '仅文章内容，不包含模板元信息',
 		includesTemplate: false,
 	},
 	{
-		selector: '.lovpen-content-container',
+		selector: '.zepublish-content-container',
 		description: '内容容器包装器',
 		includesTemplate: false,
 	},

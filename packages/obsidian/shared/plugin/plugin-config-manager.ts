@@ -1,7 +1,7 @@
 import {NMPSettings} from "../../settings";
 
 
-import {logger} from "@lovpen/shared/src/logger";
+import {logger} from "@ze-publisher/shared/src/logger";
 
 /**
  * 通用插件配置接口
@@ -134,7 +134,9 @@ export class PluginConfigManager {
 		try {
 			const app = (window as any).app;
 			if (app && app.plugins && app.plugins.plugins) {
-				const plugin = app.plugins.plugins["lovpen"];
+				const plugin =
+					app.plugins.plugins["ze-publisher"] ||
+					app.plugins.plugins["zepublish"];
 				if (plugin && plugin.settings) {
 					logger.debug(`使用主插件的设置实例`);
 					return plugin.settings;
@@ -157,7 +159,9 @@ export class PluginConfigManager {
 			if (app) {
 				const pluginManager = app as any;
 				if (pluginManager.plugins) {
-					const plugin = pluginManager.plugins.plugins["lovpen"];
+					const plugin =
+						pluginManager.plugins.plugins["ze-publisher"] ||
+						pluginManager.plugins.plugins["zepublish"];
 					if (plugin && typeof plugin.saveSettings === "function") {
 						plugin.saveSettings();
 						logger.debug(`已触发插件的 saveSettings 方法`);

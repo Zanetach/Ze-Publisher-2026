@@ -1,5 +1,5 @@
 import {NMPSettings} from "../../settings";
-import {logger} from "@lovpen/shared";
+import {logger} from "@ze-publisher/shared";
 import {UnifiedPlugin} from "./unified-plugin-system";
 import {IHtmlPlugin, PluginMetadata, PluginType} from "./types";
 
@@ -48,7 +48,7 @@ export abstract class HtmlPlugin extends UnifiedPlugin implements IHtmlPlugin {
 			try {
 				const testElement = document.createElement("div");
 				testElement.style.display = "none";
-				testElement.className = "lovpen";
+				testElement.className = "zepublish";
 				document.body.appendChild(testElement);
 
 				const computedStyle = window.getComputedStyle(testElement);

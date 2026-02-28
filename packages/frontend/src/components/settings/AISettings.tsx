@@ -31,10 +31,12 @@ import {
 	CLAUDE_MODELS,
 	OPENROUTER_MODELS,
 	ZENMUX_MODELS,
+	GEMINI_MODELS,
 	testAIConnection,
 	fetchClaudeModels,
 	fetchOpenRouterModels,
 	fetchZenMuxModels,
+	fetchGeminiModels,
 	clearModelCache
 } from '../../services/aiService';
 
@@ -56,14 +58,16 @@ export const AISettings: React.FC<AISettingsProps> = ({
 		saveSettings
 	} = useSettings(onSaveSettings, undefined, onSettingsChange);
 	
-	const [aiProvider, setAiProvider] = useState<'claude' | 'openrouter' | 'zenmux'>(settings.aiProvider || 'claude');
+	const [aiProvider, setAiProvider] = useState<'claude' | 'openrouter' | 'zenmux' | 'gemini'>(settings.aiProvider || 'claude');
 	const [claudeApiKey, setClaudeApiKey] = useState<string>(settings.authKey || '');
 	const [openRouterApiKey, setOpenRouterApiKey] = useState<string>(settings.openRouterApiKey || '');
 	const [zenmuxApiKey, setZenmuxApiKey] = useState<string>(settings.zenmuxApiKey || '');
+	const [geminiApiKey, setGeminiApiKey] = useState<string>(settings.geminiApiKey || '');
 	const [aiPromptTemplate, setAiPromptTemplate] = useState<string>(settings.aiPromptTemplate || '');
 	const [selectedModel, setSelectedModel] = useState<string>(settings.aiModel || '');
 	const [openRouterModel, setOpenRouterModel] = useState<string>(settings.openRouterModel || '');
 	const [zenmuxModel, setZenmuxModel] = useState<string>(settings.zenmuxModel || '');
+	const [geminiModel, setGeminiModel] = useState<string>(settings.geminiModel || '');
 	const [isTestingConnection, setIsTestingConnection] = useState(false);
 	const [connectionStatus, setConnectionStatus] = useState<'idle' | 'success' | 'error'>('idle');
 	const [errorMessage, setErrorMessage] = useState<string>('');
@@ -73,6 +77,7 @@ export const AISettings: React.FC<AISettingsProps> = ({
 	const [claudeModels, setClaudeModels] = useState<AIModel[]>(CLAUDE_MODELS as AIModel[]);
 	const [openRouterModels, setOpenRouterModels] = useState<AIModel[]>(OPENROUTER_MODELS as AIModel[]);
 	const [zenmuxModels, setZenmuxModels] = useState<AIModel[]>(ZENMUX_MODELS as AIModel[]);
+	const [geminiModels, setGeminiModels] = useState<AIModel[]>(GEMINI_MODELS as AIModel[]);
 	const [isLoadingModels, setIsLoadingModels] = useState(false);
 
 	useEffect(() => {
@@ -80,17 +85,20 @@ export const AISettings: React.FC<AISettingsProps> = ({
 		setClaudeApiKey(settings.authKey || '');
 		setOpenRouterApiKey(settings.openRouterApiKey || '');
 		setZenmuxApiKey(settings.zenmuxApiKey || '');
+		setGeminiApiKey(settings.geminiApiKey || '');
 		setAiPromptTemplate(settings.aiPromptTemplate || '');
 		setSelectedModel(settings.aiModel || '');
 		setOpenRouterModel(settings.openRouterModel || '');
 		setZenmuxModel(settings.zenmuxModel || '');
-	}, [settings.aiProvider, settings.authKey, settings.openRouterApiKey, settings.zenmuxApiKey, settings.aiPromptTemplate, settings.aiModel, settings.openRouterModel, settings.zenmuxModel]);
+		setGeminiModel(settings.geminiModel || '');
+	}, [settings.aiProvider, settings.authKey, settings.openRouterApiKey, settings.zenmuxApiKey, settings.geminiApiKey, settings.aiPromptTemplate, settings.aiModel, settings.openRouterModel, settings.zenmuxModel, settings.geminiModel]);
 
 	// 组件挂载时自动加载缓存的模型列表
 	useEffect(() => {
 		const provider = settings.aiProvider || 'claude';
 		const apiKey = provider === 'claude' ? settings.authKey :
-			provider === 'openrouter' ? settings.openRouterApiKey : settings.zenmuxApiKey;
+			provider === 'openrouter' ? settings.openRouterApiKey :
+				provider === 'zenmux' ? settings.zenmuxApiKey : settings.geminiApiKey;
 		// 尝试加载（会优先使用 localStorage 缓存）
 		if (apiKey?.trim() || provider === 'zenmux') {
 			loadModels(provider, apiKey || '');
@@ -100,7 +108,7 @@ export const AISettings: React.FC<AISettingsProps> = ({
 
 	// 动态获取模型列表
 	const [modelLoadError, setModelLoadError] = useState<string>('');
-	const loadModels = async (provider: 'claude' | 'openrouter' | 'zenmux', apiKey: string) => {
+	const loadModels = async (provider: 'claude' | 'openrouter' | 'zenmux' | 'gemini', apiKey: string) => {
 		if (!apiKey.trim() && provider !== 'zenmux') return;
 		setIsLoadingModels(true);
 		setModelLoadError('');
@@ -128,6 +136,13 @@ export const AISettings: React.FC<AISettingsProps> = ({
 					setZenmuxModel(models[0].id);
 					updateSettings({zenmuxModel: models[0].id});
 				}
+			} else if (provider === 'gemini') {
+				const models = await fetchGeminiModels(apiKey);
+				setGeminiModels(models);
+				if (!geminiModel && models.length > 0) {
+					setGeminiModel(models[0].id);
+					updateSettings({geminiModel: models[0].id});
+				}
 			}
 		} catch (e: any) {
 			const msg = e?.message || '获取模型列表失败';
@@ -142,7 +157,8 @@ export const AISettings: React.FC<AISettingsProps> = ({
 	const refreshModels = () => {
 		clearModelCache(aiProvider);
 		const apiKey = aiProvider === 'claude' ? claudeApiKey :
-			aiProvider === 'openrouter' ? openRouterApiKey : zenmuxApiKey;
+			aiProvider === 'openrouter' ? openRouterApiKey :
+				aiProvider === 'zenmux' ? zenmuxApiKey : geminiApiKey;
 		loadModels(aiProvider, apiKey);
 	};
 
@@ -181,12 +197,20 @@ export const AISettings: React.FC<AISettingsProps> = ({
 				authKey: claudeApiKey,
 				openRouterApiKey,
 				zenmuxApiKey,
+				geminiApiKey,
 				aiModel: selectedModel,
 				openRouterModel,
-				zenmuxModel
+				zenmuxModel,
+				geminiModel
 			});
 			setConnectionStatus('success');
-			const providerName = aiProvider === 'openrouter' ? 'OpenRouter' : aiProvider === 'zenmux' ? 'ZenMux' : 'Claude';
+			const providerName = aiProvider === 'openrouter'
+				? 'OpenRouter'
+				: aiProvider === 'zenmux'
+					? 'ZenMux'
+					: aiProvider === 'gemini'
+						? 'Gemini'
+						: 'Claude';
 			logger.info(`${providerName} API连接测试成功`);
 		} catch (error) {
 			setConnectionStatus('error');
@@ -203,10 +227,12 @@ export const AISettings: React.FC<AISettingsProps> = ({
 			authKey: claudeApiKey.trim(),
 			openRouterApiKey: openRouterApiKey.trim(),
 			zenmuxApiKey: zenmuxApiKey.trim(),
+			geminiApiKey: geminiApiKey.trim(),
 			aiPromptTemplate: aiPromptTemplate.trim(),
 			aiModel: selectedModel,
 			openRouterModel,
-			zenmuxModel
+			zenmuxModel,
+			geminiModel
 		});
 		saveSettings();
 		logger.info('AI设置已保存');
@@ -219,13 +245,16 @@ export const AISettings: React.FC<AISettingsProps> = ({
 			setClaudeApiKey('');
 			setOpenRouterApiKey('');
 			setZenmuxApiKey('');
+			setGeminiApiKey('');
 			setAiPromptTemplate('');
 			setSelectedModel('');
 			setOpenRouterModel('');
 			setZenmuxModel('');
+			setGeminiModel('');
 			setClaudeModels([]);
 			setOpenRouterModels([]);
 			setZenmuxModels([]);
+			setGeminiModels([]);
 			setConnectionStatus('idle');
 			setErrorMessage('');
 		}
@@ -289,6 +318,7 @@ export const AISettings: React.FC<AISettingsProps> = ({
 			case 'claude': return claudeModels;
 			case 'openrouter': return openRouterModels;
 			case 'zenmux': return zenmuxModels;
+			case 'gemini': return geminiModels;
 		}
 	};
 
@@ -298,6 +328,7 @@ export const AISettings: React.FC<AISettingsProps> = ({
 			case 'claude': return selectedModel;
 			case 'openrouter': return openRouterModel;
 			case 'zenmux': return zenmuxModel;
+			case 'gemini': return geminiModel;
 		}
 	};
 
@@ -316,6 +347,10 @@ export const AISettings: React.FC<AISettingsProps> = ({
 				setZenmuxModel(modelId);
 				updateSettings({zenmuxModel: modelId});
 				break;
+			case 'gemini':
+				setGeminiModel(modelId);
+				updateSettings({geminiModel: modelId});
+				break;
 		}
 		setConnectionStatus('idle');
 		setErrorMessage('');
@@ -327,6 +362,7 @@ export const AISettings: React.FC<AISettingsProps> = ({
 			case 'claude': return claudeApiKey;
 			case 'openrouter': return openRouterApiKey;
 			case 'zenmux': return zenmuxApiKey;
+			case 'gemini': return geminiApiKey;
 		}
 	};
 
@@ -334,7 +370,13 @@ export const AISettings: React.FC<AISettingsProps> = ({
 	const getCurrentSelectionDisplay = (): string => {
 		const model = getCurrentModels().find(m => m.id === getCurrentModelId());
 		if (!model) return '未选择模型';
-		const platformName = aiProvider === 'claude' ? 'Claude' : aiProvider === 'openrouter' ? 'OpenRouter' : 'ZenMux';
+		const platformName = aiProvider === 'claude'
+			? 'Claude'
+			: aiProvider === 'openrouter'
+				? 'OpenRouter'
+				: aiProvider === 'zenmux'
+					? 'ZenMux'
+					: 'Gemini';
 		return `${platformName} - ${model.name}`;
 	};
 
@@ -344,6 +386,7 @@ export const AISettings: React.FC<AISettingsProps> = ({
 			case 'claude': return { url: 'https://console.anthropic.com/', text: '获取 Claude API 密钥' };
 			case 'openrouter': return { url: 'https://openrouter.ai/keys', text: '获取 OpenRouter API 密钥' };
 			case 'zenmux': return { url: 'https://zenmux.ai/', text: '获取 ZenMux API 密钥' };
+			case 'gemini': return { url: 'https://aistudio.google.com/apikey', text: '获取 Gemini API 密钥' };
 		}
 	};
 
@@ -353,34 +396,34 @@ export const AISettings: React.FC<AISettingsProps> = ({
 		<div className="space-y-4 sm:space-y-5">
 			{/* 简洁头部 */}
 			<div className="flex items-center gap-3">
-				<div className="p-2 bg-[#CC785C]/10 rounded-xl">
-					<Bot className="h-5 w-5 text-[#CC785C]"/>
+				<div className="p-2 bg-[#0F766E]/10 rounded-xl">
+					<Bot className="h-5 w-5 text-[#0F766E]"/>
 				</div>
 				<div>
-					<h3 className="text-base font-semibold text-[#181818]">AI 智能设置</h3>
-					<p className="text-xs text-[#87867F]">配置AI服务以启用智能分析</p>
+					<h3 className="text-base font-semibold text-[#0F172A]">AI 智能设置</h3>
+					<p className="text-xs text-[#64748B]">配置AI服务以启用智能分析</p>
 				</div>
 			</div>
 
 			{/* 双重百叶窗：平台 - 模型选择 */}
-			<div className="bg-white border border-[#E8E6DC] rounded-xl p-4 sm:p-5 space-y-4">
+			<div className="bg-white border border-[#CBD5E1] rounded-xl p-4 sm:p-5 space-y-4">
 				{/* 当前选择显示 */}
 				<div className="flex items-center justify-between gap-2 min-w-0">
-					<span className="text-sm font-medium text-[#181818] flex items-center gap-2 shrink-0">
-						<Brain className="w-4 h-4 text-[#CC785C]"/>
+					<span className="text-sm font-medium text-[#0F172A] flex items-center gap-2 shrink-0">
+						<Brain className="w-4 h-4 text-[#0F766E]"/>
 						当前模型
 					</span>
-					<span className="text-xs text-[#87867F] bg-[#F9F9F7] px-2 py-1 rounded truncate">
+					<span className="text-xs text-[#64748B] bg-[#F8FAFC] px-2 py-1 rounded truncate">
 						{getCurrentSelectionDisplay()}
 					</span>
 				</div>
 
 				{/* 第一级：平台选择 */}
 				<div className="space-y-2">
-					<label className="text-xs text-[#87867F]">AI 平台</label>
+					<label className="text-xs text-[#64748B]">AI 平台</label>
 					<Select
 						value={aiProvider}
-						onValueChange={(value: 'claude' | 'openrouter' | 'zenmux') => {
+						onValueChange={(value: 'claude' | 'openrouter' | 'zenmux' | 'gemini') => {
 							setAiProvider(value);
 							updateSettings({aiProvider: value});
 							setConnectionStatus('idle');
@@ -413,13 +456,20 @@ export const AISettings: React.FC<AISettingsProps> = ({
 									{zenmuxApiKey && <span className="text-[10px] bg-[#7C9A5E]/20 text-[#7C9A5E] px-1 py-0.5 rounded">✓</span>}
 								</span>
 							</SelectItem>
+							<SelectItem value="gemini">
+								<span className="flex items-center gap-2">
+									<Brain className="w-4 h-4"/>
+									Gemini (Google)
+									{geminiApiKey && <span className="text-[10px] bg-[#7C9A5E]/20 text-[#7C9A5E] px-1 py-0.5 rounded">✓</span>}
+								</span>
+							</SelectItem>
 						</SelectContent>
 					</Select>
 				</div>
 
 				{/* API 密钥输入 */}
 				<FormInput
-					label={`${aiProvider === 'claude' ? 'Claude' : aiProvider === 'openrouter' ? 'OpenRouter' : 'ZenMux'} API 密钥`}
+					label={`${aiProvider === 'claude' ? 'Claude' : aiProvider === 'openrouter' ? 'OpenRouter' : aiProvider === 'zenmux' ? 'ZenMux' : 'Gemini'} API 密钥`}
 					value={getCurrentApiKey()}
 					onChange={(value) => {
 						if (aiProvider === 'claude') {
@@ -428,9 +478,12 @@ export const AISettings: React.FC<AISettingsProps> = ({
 						} else if (aiProvider === 'openrouter') {
 							setOpenRouterApiKey(value);
 							updateSettings({openRouterApiKey: value.trim()});
-						} else {
+						} else if (aiProvider === 'zenmux') {
 							setZenmuxApiKey(value);
 							updateSettings({zenmuxApiKey: value.trim()});
+						} else {
+							setGeminiApiKey(value);
+							updateSettings({geminiApiKey: value.trim()});
 						}
 						setConnectionStatus('idle');
 						setErrorMessage('');
@@ -439,7 +492,7 @@ export const AISettings: React.FC<AISettingsProps> = ({
 							loadModels(aiProvider, value.trim());
 						}
 					}}
-					placeholder={aiProvider === 'claude' ? 'sk-ant-api03-...' : aiProvider === 'openrouter' ? 'sk-or-v1-...' : 'your-zenmux-key...'}
+					placeholder={aiProvider === 'claude' ? 'sk-ant-api03-...' : aiProvider === 'openrouter' ? 'sk-or-v1-...' : aiProvider === 'zenmux' ? 'your-zenmux-key...' : 'AIzaSy...'}
 					type="password"
 					required={aiProvider !== 'zenmux'}
 					icon={Key}
@@ -449,13 +502,13 @@ export const AISettings: React.FC<AISettingsProps> = ({
 				{/* 第二级：模型选择 */}
 				<div className="space-y-2">
 					<div className="flex items-center justify-between">
-						<label className="text-xs text-[#87867F]">AI 模型</label>
+						<label className="text-xs text-[#64748B]">AI 模型</label>
 						<Button
 							onClick={refreshModels}
 							disabled={isLoadingModels}
 							size="sm"
 							variant="ghost"
-							className="h-6 px-2 text-[#87867F] hover:text-[#CC785C]"
+							className="h-6 px-2 text-[#64748B] hover:text-[#0F766E]"
 						>
 							<RefreshCw className={`w-3 h-3 ${isLoadingModels ? 'animate-spin' : ''}`}/>
 						</Button>
@@ -466,10 +519,10 @@ export const AISettings: React.FC<AISettingsProps> = ({
 							value={getCurrentModelId()}
 							onValueChange={setCurrentModel}
 							placeholder="选择 AI 模型"
-							groupByVendor={aiProvider !== 'claude'}
+							groupByVendor={aiProvider !== 'claude' && aiProvider !== 'gemini'}
 						/>
 					) : (
-						<p className={`text-xs py-2 ${modelLoadError ? 'text-[#B85450]' : 'text-[#87867F]'}`}>
+						<p className={`text-xs py-2 ${modelLoadError ? 'text-[#B85450]' : 'text-[#64748B]'}`}>
 							{modelLoadError || (aiProvider === 'zenmux' ? '点击刷新按钮获取模型列表' : getCurrentApiKey().trim() ? '点击刷新按钮获取模型列表' : '请先输入 API Key')}
 						</p>
 					)}
@@ -481,7 +534,7 @@ export const AISettings: React.FC<AISettingsProps> = ({
 						onClick={testConnection}
 						disabled={isTestingConnection || (aiProvider !== 'zenmux' && !getCurrentApiKey().trim())}
 						size="sm"
-						className="bg-[#CC785C] hover:bg-[#B86A4E] text-white rounded-lg h-9"
+						className="bg-[#0F766E] hover:bg-[#B86A4E] text-white rounded-lg h-9"
 					>
 						{isTestingConnection ? (
 							<RefreshCw className="w-4 h-4 animate-spin"/>
@@ -518,7 +571,7 @@ export const AISettings: React.FC<AISettingsProps> = ({
 					href={apiKeyLink.url}
 					target="_blank"
 					rel="noopener noreferrer"
-					className="flex items-center gap-1.5 text-xs text-[#CC785C] hover:underline"
+					className="flex items-center gap-1.5 text-xs text-[#0F766E] hover:underline"
 				>
 					<ExternalLink className="w-3 h-3"/>
 					{apiKeyLink.text}
@@ -527,16 +580,16 @@ export const AISettings: React.FC<AISettingsProps> = ({
 
 			{/* 提示词模板 - 可折叠的高级设置 */}
 			<Collapsible open={promptExpanded} onOpenChange={setPromptExpanded}>
-				<div className="bg-white border border-[#E8E6DC] rounded-xl overflow-hidden">
-					<CollapsibleTrigger className="w-full flex items-center justify-between p-4 hover:bg-[#F9F9F7] transition-colors">
+				<div className="bg-white border border-[#CBD5E1] rounded-xl overflow-hidden">
+					<CollapsibleTrigger className="w-full flex items-center justify-between p-4 hover:bg-[#F8FAFC] transition-colors">
 						<div className="flex items-center gap-3">
-							<Code className="h-4 w-4 text-[#CC785C]"/>
+							<Code className="h-4 w-4 text-[#0F766E]"/>
 							<div className="text-left">
-								<span className="font-medium text-sm text-[#181818]">提示词模板</span>
-								<p className="text-xs text-[#87867F]">自定义AI分析指令</p>
+								<span className="font-medium text-sm text-[#0F172A]">提示词模板</span>
+								<p className="text-xs text-[#64748B]">自定义AI分析指令</p>
 							</div>
 						</div>
-						<ChevronDown className={`h-4 w-4 text-[#87867F] transition-transform ${promptExpanded ? 'rotate-180' : ''}`}/>
+						<ChevronDown className={`h-4 w-4 text-[#64748B] transition-transform ${promptExpanded ? 'rotate-180' : ''}`}/>
 					</CollapsibleTrigger>
 					<CollapsibleContent>
 						<div className="px-4 pb-4 sm:px-5 sm:pb-5 space-y-3">
@@ -545,7 +598,7 @@ export const AISettings: React.FC<AISettingsProps> = ({
 									onClick={handleUseDefaultTemplate}
 									size="sm"
 									variant="outline"
-									className="text-[#CC785C] border-[#CC785C]/30 hover:bg-[#CC785C]/5 rounded-lg text-xs h-8"
+									className="text-[#0F766E] border-[#0F766E]/30 hover:bg-[#0F766E]/5 rounded-lg text-xs h-8"
 								>
 									<RefreshCw className="w-3.5 h-3.5 mr-1.5"/>
 									恢复默认
@@ -555,14 +608,14 @@ export const AISettings: React.FC<AISettingsProps> = ({
 								value={aiPromptTemplate}
 								onChange={(e) => handlePromptTemplateChange(e.target.value)}
 								placeholder="输入自定义的AI提示词模板..."
-								className="w-full px-3 py-2.5 border border-[#E8E6DC] rounded-lg focus:outline-none focus:border-[#CC785C] focus:ring-1 focus:ring-[#CC785C]/20 h-32 sm:h-40 resize-y font-mono text-xs sm:text-sm transition-colors bg-white text-[#181818] placeholder:text-[#87867F]"
+								className="w-full px-3 py-2.5 border border-[#CBD5E1] rounded-lg focus:outline-none focus:border-[#0F766E] focus:ring-1 focus:ring-[#0F766E]/20 h-32 sm:h-40 resize-y font-mono text-xs sm:text-sm transition-colors bg-white text-[#0F172A] placeholder:text-[#64748B]"
 							/>
 							{/* 模板变量 - 可滚动的水平列表 */}
-							<div className="bg-[#F9F9F7] border border-[#E8E6DC] rounded-lg p-3">
-								<p className="text-xs font-medium text-[#87867F] mb-2">可用变量</p>
+							<div className="bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg p-3">
+								<p className="text-xs font-medium text-[#64748B] mb-2">可用变量</p>
 								<div className="flex flex-wrap gap-1.5">
 									{['{{content}}', '{{filename}}', '{{personalInfo.name}}', '{{today}}', '{{frontmatter}}'].map((v) => (
-										<code key={v} className="text-[10px] sm:text-xs bg-white px-2 py-1 rounded border border-[#E8E6DC] text-[#CC785C]">{v}</code>
+										<code key={v} className="text-[10px] sm:text-xs bg-white px-2 py-1 rounded border border-[#CBD5E1] text-[#0F766E]">{v}</code>
 									))}
 								</div>
 							</div>
@@ -585,7 +638,7 @@ export const AISettings: React.FC<AISettingsProps> = ({
 				<Button
 					onClick={handleSave}
 					size="sm"
-					className="bg-[#CC785C] hover:bg-[#B86A4E] text-white rounded-lg shadow-sm h-10 sm:h-9"
+					className="bg-[#0F766E] hover:bg-[#B86A4E] text-white rounded-lg shadow-sm h-10 sm:h-9"
 				>
 					<Save className="w-4 h-4 mr-2"/>
 					保存设置

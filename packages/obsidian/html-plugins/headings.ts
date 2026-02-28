@@ -1,9 +1,8 @@
-import {UniversalPluginMetaConfig} from "../shared/plugin/plugin-config-manager";
+import { UniversalPluginMetaConfig } from "../shared/plugin/plugin-config-manager";
 
+import { logger } from "../../shared/src/logger";
 
-import {logger} from "../../shared/src/logger";
-
-import {HtmlPlugin as UnifiedHtmlPlugin} from "../shared/plugin/html-plugin";
+import { HtmlPlugin as UnifiedHtmlPlugin } from "../shared/plugin/html-plugin";
 
 /**
  * 标题处理插件 - 处理微信公众号中的标题格式
@@ -22,39 +21,57 @@ export class Headings extends UnifiedHtmlPlugin {
 			defaultConfig.enableHeadingNumber = false;
 		}
 		// 迁移旧配置到新配置
-		if (currentConfig.headingNumberTemplate !== undefined && currentConfig.headingNumberStyle === undefined) {
+		if (
+			currentConfig.headingNumberTemplate !== undefined &&
+			currentConfig.headingNumberStyle === undefined
+		) {
 			const template = String(currentConfig.headingNumberTemplate);
 			// 尝试从旧模板推断样式
-			if (template.includes('{chinese}')) {
-				defaultConfig.headingNumberStyle = 'chinese';
-				defaultConfig.headingNumberFormat = template.replace('{chinese}', '{}');
-			} else if (template.includes('{roman}')) {
-				defaultConfig.headingNumberStyle = 'roman';
-				defaultConfig.headingNumberFormat = template.replace('{roman}', '{}');
-			} else if (template.includes('{letter}')) {
-				defaultConfig.headingNumberStyle = 'letter';
-				defaultConfig.headingNumberFormat = template.replace('{letter}', '{}');
-			} else if (template.includes('{number}')) {
-				defaultConfig.headingNumberStyle = 'number';
-				defaultConfig.headingNumberFormat = template.replace('{number}', '{}');
+			if (template.includes("{chinese}")) {
+				defaultConfig.headingNumberStyle = "chinese";
+				defaultConfig.headingNumberFormat = template.replace(
+					"{chinese}",
+					"{}",
+				);
+			} else if (template.includes("{roman}")) {
+				defaultConfig.headingNumberStyle = "roman";
+				defaultConfig.headingNumberFormat = template.replace(
+					"{roman}",
+					"{}",
+				);
+			} else if (template.includes("{letter}")) {
+				defaultConfig.headingNumberStyle = "letter";
+				defaultConfig.headingNumberFormat = template.replace(
+					"{letter}",
+					"{}",
+				);
+			} else if (template.includes("{number}")) {
+				defaultConfig.headingNumberStyle = "number";
+				defaultConfig.headingNumberFormat = template.replace(
+					"{number}",
+					"{}",
+				);
 			} else {
-				defaultConfig.headingNumberStyle = 'index';
-				defaultConfig.headingNumberFormat = template.replace('{index}', '{}');
+				defaultConfig.headingNumberStyle = "index";
+				defaultConfig.headingNumberFormat = template.replace(
+					"{index}",
+					"{}",
+				);
 			}
 			// 删除旧配置
 			delete currentConfig.headingNumberTemplate;
 		}
 		if (currentConfig.headingNumberStyle === undefined) {
-			defaultConfig.headingNumberStyle = 'index';
+			defaultConfig.headingNumberStyle = "index";
 		}
 		if (currentConfig.headingNumberFormat === undefined) {
-			defaultConfig.headingNumberFormat = '{}';
+			defaultConfig.headingNumberFormat = "{}";
 		}
 		if (currentConfig.enableHeadingDelimiterBreak === undefined) {
-			defaultConfig.enableHeadingDelimiterBreak = true;  // 默认启用分隔符换行功能
+			defaultConfig.enableHeadingDelimiterBreak = true; // 默认启用分隔符换行功能
 		}
 		if (currentConfig.headingDelimiters === undefined) {
-			defaultConfig.headingDelimiters = ",，、；：;:| ";
+			defaultConfig.headingDelimiters = ",，、；：;:|";
 		}
 		if (currentConfig.keepDelimiterInOutput === undefined) {
 			defaultConfig.keepDelimiterInOutput = true;
@@ -82,7 +99,7 @@ export class Headings extends UnifiedHtmlPlugin {
 			enableHeadingNumber: {
 				type: "switch",
 				title: "启用编号",
-				description: "为二级标题自动添加序号"
+				description: "为二级标题自动添加序号",
 			},
 			headingNumberStyle: {
 				type: "select",
@@ -92,7 +109,10 @@ export class Headings extends UnifiedHtmlPlugin {
 					{ value: "index", text: "普通数字 (1, 2, 3)" },
 					{ value: "number", text: "带前导零 (01, 02, 03)" },
 					{ value: "chinese", text: "中文数字 (一, 二, 三)" },
-					{ value: "chinese-traditional", text: "繁体中文 (壹, 貳, 參)" },
+					{
+						value: "chinese-traditional",
+						text: "繁体中文 (壹, 貳, 參)",
+					},
 					{ value: "circle", text: "圆圈数字 (①, ②, ③)" },
 					{ value: "parenthesis", text: "括号数字 (⑴, ⑵, ⑶)" },
 					{ value: "fullwidth", text: "全角数字 (１, ２, ３)" },
@@ -100,30 +120,30 @@ export class Headings extends UnifiedHtmlPlugin {
 					{ value: "roman", text: "大写罗马 (I, II, III)" },
 					{ value: "roman-lower", text: "小写罗马 (i, ii, iii)" },
 					{ value: "letter", text: "大写字母 (A, B, C)" },
-					{ value: "letter-lower", text: "小写字母 (a, b, c)" }
-				]
+					{ value: "letter-lower", text: "小写字母 (a, b, c)" },
+				],
 			},
 			headingNumberFormat: {
 				type: "text",
 				title: "编号格式",
 				description: "{} 代表编号位置，如: 第{}章、Part {}、{}.",
-				placeholder: "{}"
+				placeholder: "{}",
 			},
 			enableHeadingDelimiterBreak: {
 				type: "switch",
 				title: "分隔符换行",
-				description: "遇到逗号等分隔符时自动换行"
+				description: "遇到逗号等分隔符时自动换行",
 			},
 			headingDelimiters: {
 				type: "text",
 				title: "分隔符",
-				description: "触发换行的字符，如: ,，、；：空格"
+				description: "触发换行的字符，如: ,，、；：",
 			},
 			keepDelimiterInOutput: {
 				type: "switch",
 				title: "保留分隔符",
-				description: "换行后是否保留原分隔符"
-			}
+				description: "换行后是否保留原分隔符",
+			},
 		};
 	}
 
@@ -133,19 +153,24 @@ export class Headings extends UnifiedHtmlPlugin {
 			const config = this.getConfig();
 			const needProcessNumber = config.enableHeadingNumber;
 			const needProcessDelimiter = config.enableHeadingDelimiterBreak;
-			
+
 			logger.info(`[标题处理插件] 配置状态:`, {
 				pluginEnabled: config.enabled,
 				enableHeadingNumber: needProcessNumber,
 				enableHeadingDelimiterBreak: needProcessDelimiter,
-				headingDelimiters: config.headingDelimiters || ",，、；：;:| ",
-				keepDelimiterInOutput: config.keepDelimiterInOutput
+				headingDelimiters: config.headingDelimiters || ",，、；：;:|",
+				keepDelimiterInOutput: config.keepDelimiterInOutput,
 			});
 
 			if (needProcessDelimiter || needProcessNumber) {
-				logger.info(`[标题处理插件] 开始处理标题 (分隔符处理=${needProcessDelimiter}, 编号处理=${needProcessNumber})`);
+				logger.info(
+					`[标题处理插件] 开始处理标题 (分隔符处理=${needProcessDelimiter}, 编号处理=${needProcessNumber})`,
+				);
 				const parser = new DOMParser();
-				const doc = parser.parseFromString(`<div>${html}</div>`, "text/html");
+				const doc = parser.parseFromString(
+					`<div>${html}</div>`,
+					"text/html",
+				);
 				const container = doc.body.firstChild as HTMLElement;
 
 				container.querySelectorAll("h2").forEach((h2, index) => {
@@ -155,12 +180,16 @@ export class Headings extends UnifiedHtmlPlugin {
 					if (contentSpan) {
 						// 将标题居中显示
 						h2.style.textAlign = "center";
-						
-						logger.debug(`Processing h2[${index}], content: "${contentSpan.textContent}"`);
+
+						logger.debug(
+							`Processing h2[${index}], content: "${contentSpan.textContent}"`,
+						);
 
 						// 1. 处理分隔符换行
 						if (needProcessDelimiter) {
-							logger.debug(`Processing delimiters for h2[${index}]`);
+							logger.debug(
+								`Processing delimiters for h2[${index}]`,
+							);
 							this.processHeadingDelimiters(contentSpan);
 						}
 
@@ -188,7 +217,7 @@ export class Headings extends UnifiedHtmlPlugin {
 		const config = this.getConfig();
 		const style = String(config.headingNumberStyle || "index");
 		const format = String(config.headingNumberFormat || "{}");
-		
+
 		// 根据样式选择转换方法
 		let numberText: string;
 		switch (style) {
@@ -230,16 +259,14 @@ export class Headings extends UnifiedHtmlPlugin {
 				numberText = (index + 1).toString();
 				break;
 		}
-		
+
 		// 将编号插入到格式模板中
 		let formattedText = format.replace("{}", numberText);
 
 		// 创建序号元素
 		const numberSpan = contentSpan.ownerDocument.createElement("span");
 		numberSpan.setAttribute("leaf", "");
-
-		// 设置样式
-		numberSpan.setAttribute("style", "font-size: 48px; ");
+		numberSpan.classList.add("zp-heading-number");
 		numberSpan.textContent = formattedText;
 
 		// 将序号添加到标题内容开头
@@ -256,7 +283,7 @@ export class Headings extends UnifiedHtmlPlugin {
 		// 再插入换行（压在序号下面）
 		contentSpan.insertBefore(
 			breakElement,
-			contentSpan.childNodes[1] || null
+			contentSpan.childNodes[1] || null,
 		);
 	}
 
@@ -268,25 +295,32 @@ export class Headings extends UnifiedHtmlPlugin {
 		try {
 			// 获取配置的分隔符
 			const config = this.getConfig();
-			const delimiters = String(config.headingDelimiters || ",，、；：;:| ");
+			const delimiters = String(
+				config.headingDelimiters || ",，、；：;:|",
+			);
 			const keepDelimiter = config.keepDelimiterInOutput !== false;
-			
-			logger.debug(`Delimiter config: delimiters="${delimiters}", keepDelimiter=${keepDelimiter}`);
-			
+
+			logger.debug(
+				`Delimiter config: delimiters="${delimiters}", keepDelimiter=${keepDelimiter}`,
+			);
+
 			// 转义特殊正则字符并构建正则表达式
-			const escapedDelimiters = delimiters.split('').map(char => {
-				// 转义正则特殊字符 (包括在字符类中有特殊含义的字符)
-				return char.replace(/[.*+?^${}()|[\]\\-]/g, '\\$&');
-			}).join('');
-			
-			const delimiterRegex = new RegExp(`[${escapedDelimiters}]`, 'g');
+			const escapedDelimiters = delimiters
+				.split("")
+				.map((char) => {
+					// 转义正则特殊字符 (包括在字符类中有特殊含义的字符)
+					return char.replace(/[.*+?^${}()|[\]\\-]/g, "\\$&");
+				})
+				.join("");
+
+			const delimiterRegex = new RegExp(`[${escapedDelimiters}]`, "g");
 			logger.debug(`Delimiter regex pattern: [${escapedDelimiters}]`);
 
 			// 获取所有文本节点
 			const walker = element.ownerDocument.createTreeWalker(
 				element,
 				NodeFilter.SHOW_TEXT,
-				null
+				null,
 			);
 
 			const textNodes: Text[] = [];
@@ -295,83 +329,107 @@ export class Headings extends UnifiedHtmlPlugin {
 				textNodes.push(textNode);
 				textNode = walker.nextNode() as Text;
 			}
-			
+
 			logger.debug(`Found ${textNodes.length} text nodes to process`);
 
 			// 处理每个文本节点
 			for (const node of textNodes) {
-				const originalText = node.nodeValue || '';
+				const originalText = node.nodeValue || "";
 				logger.debug(`Processing text node: "${originalText}"`);
-				
+
 				// 查找所有分隔符
-				const matches = Array.from(originalText.matchAll(delimiterRegex));
+				const matches = Array.from(
+					originalText.matchAll(delimiterRegex),
+				);
 				if (matches.length === 0) {
 					continue;
 				}
-				
+
 				logger.debug(`Found ${matches.length} delimiters in text`);
-				
+
 				// 构建新的节点片段
 				const parent = node.parentNode;
 				if (!parent) continue;
-				
+
 				const doc = element.ownerDocument;
 				let lastIndex = 0;
 				const fragment = doc.createDocumentFragment();
-				
+
 				// 处理每个分隔符
 				for (const match of matches) {
 					const matchIndex = match.index!;
 					const delimiter = match[0];
-					
+
 					// 添加分隔符前的文本
 					if (keepDelimiter) {
 						// 保留分隔符：分隔符跟在前面的文本后
-						const beforeText = originalText.slice(lastIndex, matchIndex + 1);
+						const beforeText = originalText.slice(
+							lastIndex,
+							matchIndex + 1,
+						);
 						if (beforeText) {
-							fragment.appendChild(doc.createTextNode(beforeText));
+							fragment.appendChild(
+								doc.createTextNode(beforeText),
+							);
 						}
 					} else {
 						// 不保留分隔符：只添加分隔符前的文本
-						const beforeText = originalText.slice(lastIndex, matchIndex);
+						const beforeText = originalText.slice(
+							lastIndex,
+							matchIndex,
+						);
 						if (beforeText) {
-							fragment.appendChild(doc.createTextNode(beforeText));
+							fragment.appendChild(
+								doc.createTextNode(beforeText),
+							);
 						}
 					}
-					
+
 					// 添加换行
-					fragment.appendChild(doc.createElement('br'));
-					
+					fragment.appendChild(doc.createElement("br"));
+
 					// 更新位置到分隔符后
 					lastIndex = matchIndex + 1;
 				}
-				
+
 				// 添加最后剩余的文本
 				const remainingText = originalText.slice(lastIndex);
 				if (remainingText) {
 					fragment.appendChild(doc.createTextNode(remainingText));
 				}
-				
+
 				// 替换原节点
 				parent.replaceChild(fragment, node);
-				logger.debug(`Replaced text node with ${matches.length} line breaks`);
+				logger.debug(
+					`Replaced text node with ${matches.length} line breaks`,
+				);
 			}
 		} catch (error) {
 			logger.error("处理标题分隔符时出错:", error);
 		}
 	}
-	
+
 	/**
 	 * 将数字转换为罗马数字
 	 */
 	private toRoman(num: number): string {
 		const romanNumerals: [number, string][] = [
-			[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'],
-			[100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'],
-			[10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']
+			[1000, "M"],
+			[900, "CM"],
+			[500, "D"],
+			[400, "CD"],
+			[100, "C"],
+			[90, "XC"],
+			[50, "L"],
+			[40, "XL"],
+			[10, "X"],
+			[9, "IX"],
+			[5, "V"],
+			[4, "IV"],
+			[1, "I"],
 		];
-		
-		let result = '';
+
+		let result = "";
 		for (const [value, symbol] of romanNumerals) {
 			while (num >= value) {
 				result += symbol;
@@ -380,12 +438,12 @@ export class Headings extends UnifiedHtmlPlugin {
 		}
 		return result;
 	}
-	
+
 	/**
 	 * 将数字转换为字母（A, B, C...AA, AB...）
 	 */
 	private toLetter(num: number): string {
-		let result = '';
+		let result = "";
 		while (num > 0) {
 			num--; // 调整为0索引
 			result = String.fromCharCode(65 + (num % 26)) + result;
@@ -393,126 +451,172 @@ export class Headings extends UnifiedHtmlPlugin {
 		}
 		return result;
 	}
-	
+
 	/**
 	 * 将数字转换为中文数字（一、二、三...）
 	 */
 	private toChineseNumber(num: number): string {
-		const digits = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
-		const units = ['', '十', '百', '千', '万'];
-		
+		const digits = [
+			"零",
+			"一",
+			"二",
+			"三",
+			"四",
+			"五",
+			"六",
+			"七",
+			"八",
+			"九",
+		];
+		const units = ["", "十", "百", "千", "万"];
+
 		// 特殊处理0-10
-		if (num === 0) return '零';
+		if (num === 0) return "零";
 		if (num <= 10) {
-			return ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'][num];
+			return [
+				"零",
+				"一",
+				"二",
+				"三",
+				"四",
+				"五",
+				"六",
+				"七",
+				"八",
+				"九",
+				"十",
+			][num];
 		}
-		
+
 		// 处理11-19
 		if (num < 20) {
-			return '十' + digits[num - 10];
+			return "十" + digits[num - 10];
 		}
-		
+
 		// 处理20-99
 		if (num < 100) {
 			const tens = Math.floor(num / 10);
 			const ones = num % 10;
 			if (ones === 0) {
-				return digits[tens] + '十';
+				return digits[tens] + "十";
 			}
-			return digits[tens] + '十' + digits[ones];
+			return digits[tens] + "十" + digits[ones];
 		}
-		
+
 		// 处理100-999
 		if (num < 1000) {
 			const hundreds = Math.floor(num / 100);
 			const remainder = num % 100;
-			let result = digits[hundreds] + '百';
-			
+			let result = digits[hundreds] + "百";
+
 			if (remainder === 0) {
 				return result;
 			} else if (remainder < 10) {
 				// 需要加"零"
-				return result + '零' + digits[remainder];
+				return result + "零" + digits[remainder];
 			} else if (remainder < 20) {
 				// 一百一十到一百一十九
 				if (remainder === 10) {
-					return result + '一十';
+					return result + "一十";
 				}
-				return result + '一十' + digits[remainder - 10];
+				return result + "一十" + digits[remainder - 10];
 			} else {
 				// 一百二十到一百九十九
 				const tens = Math.floor(remainder / 10);
 				const ones = remainder % 10;
 				if (ones === 0) {
-					return result + digits[tens] + '十';
+					return result + digits[tens] + "十";
 				}
-				return result + digits[tens] + '十' + digits[ones];
+				return result + digits[tens] + "十" + digits[ones];
 			}
 		}
-		
+
 		// 超过999的数字，返回阿拉伯数字
 		return num.toString();
 	}
-	
+
 	/**
 	 * 将数字转换为繁体中文数字（壹、貳、參...）
 	 */
 	private toChineseTraditional(num: number): string {
-		const digits = ['零', '壹', '貳', '參', '肆', '伍', '陸', '柒', '捌', '玖'];
-		
+		const digits = [
+			"零",
+			"壹",
+			"貳",
+			"參",
+			"肆",
+			"伍",
+			"陸",
+			"柒",
+			"捌",
+			"玖",
+		];
+
 		// 特殊处理0-10
-		if (num === 0) return '零';
+		if (num === 0) return "零";
 		if (num <= 10) {
-			return ['零', '壹', '貳', '參', '肆', '伍', '陸', '柒', '捌', '玖', '拾'][num];
+			return [
+				"零",
+				"壹",
+				"貳",
+				"參",
+				"肆",
+				"伍",
+				"陸",
+				"柒",
+				"捌",
+				"玖",
+				"拾",
+			][num];
 		}
-		
+
 		// 处理11-19
 		if (num < 20) {
-			return '拾' + digits[num - 10];
+			return "拾" + digits[num - 10];
 		}
-		
+
 		// 处理20-99
 		if (num < 100) {
 			const tens = Math.floor(num / 10);
 			const ones = num % 10;
 			if (ones === 0) {
-				return digits[tens] + '拾';
+				return digits[tens] + "拾";
 			}
-			return digits[tens] + '拾' + digits[ones];
+			return digits[tens] + "拾" + digits[ones];
 		}
-		
+
 		// 处理100-999
 		if (num < 1000) {
 			const hundreds = Math.floor(num / 100);
 			const remainder = num % 100;
-			let result = digits[hundreds] + '佰';
-			
+			let result = digits[hundreds] + "佰";
+
 			if (remainder === 0) {
 				return result;
 			} else if (remainder < 10) {
 				// 需要加"零"
-				return result + '零' + digits[remainder];
+				return result + "零" + digits[remainder];
 			} else if (remainder < 20) {
 				// 壹佰壹拾到壹佰壹拾玖
 				if (remainder === 10) {
-					return result + '壹拾';
+					return result + "壹拾";
 				}
-				return result + '壹拾' + digits[remainder - 10];
+				return result + "壹拾" + digits[remainder - 10];
 			} else {
 				// 壹佰貳拾到壹佰玖拾玖
 				const tens = Math.floor(remainder / 10);
 				const ones = remainder % 10;
 				if (ones === 0) {
-					return result + digits[tens] + '拾';
+					return result + digits[tens] + "拾";
 				}
-				return result + digits[tens] + '拾' + digits[ones];
+				return result + digits[tens] + "拾" + digits[ones];
 			}
 		}
-		
+
 		// 超过999的数字，返回阿拉伯数字
 		return num.toString();
 	}
-	
+
 	/**
 	 * 将数字转换为圆圈数字（①②③...）
 	 */
@@ -524,7 +628,7 @@ export class Headings extends UnifiedHtmlPlugin {
 		// 超过20的返回带括号的数字
 		return `(${num})`;
 	}
-	
+
 	/**
 	 * 将数字转换为带括号数字（⑴⑵⑶...）
 	 */
@@ -536,47 +640,47 @@ export class Headings extends UnifiedHtmlPlugin {
 		// 超过20的返回带括号的数字
 		return `(${num})`;
 	}
-	
+
 	/**
 	 * 将数字转换为全角数字（１２３...）
 	 */
 	private toFullwidthNumber(num: number): string {
 		const str = num.toString();
-		let result = '';
+		let result = "";
 		for (let i = 0; i < str.length; i++) {
 			const digit = parseInt(str[i]);
 			if (!isNaN(digit)) {
 				// 全角数字０到９
-				result += String.fromCharCode(0xFF10 + digit);
+				result += String.fromCharCode(0xff10 + digit);
 			} else {
 				result += str[i];
 			}
 		}
 		return result;
 	}
-	
+
 	/**
 	 * 将数字转换为英文序数词（1st, 2nd, 3rd...）
 	 */
 	private toOrdinal(num: number): string {
 		const lastTwoDigits = num % 100;
 		const lastDigit = num % 10;
-		
+
 		// 特殊处理 11, 12, 13
 		if (lastTwoDigits >= 11 && lastTwoDigits <= 13) {
-			return num + 'th';
+			return num + "th";
 		}
-		
+
 		// 根据最后一位数字决定后缀
 		switch (lastDigit) {
 			case 1:
-				return num + 'st';
+				return num + "st";
 			case 2:
-				return num + 'nd';
+				return num + "nd";
 			case 3:
-				return num + 'rd';
+				return num + "rd";
 			default:
-				return num + 'th';
+				return num + "th";
 		}
 	}
 }

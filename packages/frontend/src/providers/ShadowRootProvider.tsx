@@ -54,7 +54,7 @@ export const ShadowRootProvider: React.FC<ShadowRootProviderProps> = ({
 			{!externalContainer && (
 				<div
 					ref={containerRef}
-					id="lovpen-portal-container"
+					id="zepublish-portal-container"
 					style={{ position: 'relative', zIndex: 9999 }}
 				/>
 			)}

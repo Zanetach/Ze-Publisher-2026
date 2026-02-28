@@ -21,16 +21,26 @@ export const PlaygroundPanel: React.FC<PlaygroundPanelProps> = ({settings, onOpe
 	const [showAdvanced, setShowAdvanced] = useState(false);
 	const [previewImage, setPreviewImage] = useState<string | null>(null);
 	const [error, setError] = useState('');
+	const [isSavingToNote, setIsSavingToNote] = useState(false);
+	const [saveNoteMessage, setSaveNoteMessage] = useState('');
 
 	// 更新持久化状态的辅助函数
 	const updateState = useCallback((updates: Partial<typeof playgroundState>) => {
 		setPlaygroundState(prev => ({...prev, ...updates}));
 	}, [setPlaygroundState]);
 
-	const isAIAvailable = settings?.aiProvider === 'zenmux' && !!settings?.zenmuxApiKey?.trim();
+	const provider = settings?.aiProvider || 'claude';
+	const isProviderConfigured = (() => {
+		if (!settings) return false;
+		if (provider === 'claude') return !!settings.authKey?.trim();
+		if (provider === 'openrouter') return !!settings.openRouterApiKey?.trim();
+		if (provider === 'zenmux') return !!settings.zenmuxApiKey?.trim();
+		if (provider === 'gemini') return !!settings.geminiApiKey?.trim();
+		return false;
+	})();
 
 	const handleGenerate = useCallback(async () => {
-		if (!prompt.trim() || !isAIAvailable || isGenerating) return;
+		if (!prompt.trim() || !isProviderConfigured || isGenerating) return;
 
 		updateState({isGenerating: true});
 		setError('');
@@ -38,7 +48,7 @@ export const PlaygroundPanel: React.FC<PlaygroundPanelProps> = ({settings, onOpe
 		const logId = aiLogService.addLog({
 			type: 'image_generation',
 			status: 'started',
-			message: '实验室图片生成',
+			message: '生图图片生成',
 			prompt,
 			negativePrompt: negativePrompt || undefined,
 			model: 'gemini-3-pro-image-preview'
@@ -62,7 +72,7 @@ export const PlaygroundPanel: React.FC<PlaygroundPanelProps> = ({settings, onOpe
 				});
 				aiLogService.updateLog(logId, {
 					status: 'completed',
-					message: '实验室图片生成成功',
+					message: '图片生成成功',
 					imageUrl: result.imageUrl
 				});
 			} else {
@@ -74,11 +84,11 @@ export const PlaygroundPanel: React.FC<PlaygroundPanelProps> = ({settings, onOpe
 			updateState({isGenerating: false});
 			aiLogService.updateLog(logId, {
 				status: 'failed',
-				message: '实验室图片生成失败',
+				message: '图片生成失败',
 				error: msg
 			});
 		}
-	}, [prompt, negativePrompt, generatedImages, isGenerating, settings, isAIAvailable, updateState, temperature, topP, seed]);
+	}, [prompt, negativePrompt, generatedImages, isGenerating, settings, isProviderConfigured, updateState, temperature, topP, seed]);
 
 	const handleDownload = useCallback((url: string, index: number) => {
 		const a = document.createElement('a');
@@ -87,10 +97,85 @@ export const PlaygroundPanel: React.FC<PlaygroundPanelProps> = ({settings, onOpe
 		a.click();
 	}, []);
 
-	if (!isAIAvailable) {
+	const ensureDirectoryExists = useCallback(async (adapter: any, dirPath: string) => {
+		if (!dirPath || !adapter?.exists || !adapter?.mkdir) return;
+		const parts = dirPath.split('/').filter(Boolean);
+		let current = '';
+		for (const part of parts) {
+			current = current ? `${current}/${part}` : part;
+			// eslint-disable-next-line no-await-in-loop
+			const exists = await adapter.exists(current);
+			if (!exists) {
+				// eslint-disable-next-line no-await-in-loop
+				await adapter.mkdir(current);
+			}
+		}
+	}, []);
+
+	const saveImageToNote = useCallback(async (url: string) => {
+		setIsSavingToNote(true);
+		setSaveNoteMessage('');
+		try {
+			const vault = (window as any)?.app?.vault;
+			const adapter = vault?.adapter;
+			if (!adapter) {
+				throw new Error('未检测到 Obsidian Vault 适配器');
+			}
+
+			let arrayBuffer: ArrayBuffer;
+			let contentType = 'image/png';
+			if (url.startsWith('http://') || url.startsWith('https://')) {
+				if (window.zepublishReactAPI?.requestUrl) {
+					const response = await window.zepublishReactAPI.requestUrl({url, method: 'GET'});
+					arrayBuffer = response.arrayBuffer;
+					contentType = response.headers?.['content-type'] || contentType;
+				} else {
+					const response = await fetch(url);
+					arrayBuffer = await response.arrayBuffer();
+					contentType = response.headers.get('content-type') || contentType;
+				}
+			} else {
+				const response = await fetch(url);
+				arrayBuffer = await response.arrayBuffer();
+				contentType = response.headers.get('content-type') || contentType;
+			}
+
+			const ext = contentType.includes('jpeg') || contentType.includes('jpg')
+				? 'jpg'
+				: contentType.includes('webp')
+				? 'webp'
+				: 'png';
+			const folderRaw = settings?.imageSaveFolderEnabled === false
+				? 'zepublish-images'
+				: (settings?.imageSaveFolder?.trim() || 'zepublish-images');
+			const folder = folderRaw.replace(/^\/+|\/+$/g, '');
+			await ensureDirectoryExists(adapter, folder);
+
+			const now = new Date();
+			const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+			const random = Math.random().toString(36).slice(2, 7);
+			const fileName = `playground-${timestamp}-${random}.${ext}`;
+			const filePath = folder ? `${folder}/${fileName}` : fileName;
+
+			if (adapter.writeBinary) {
+				await adapter.writeBinary(filePath, arrayBuffer);
+			} else {
+				await adapter.write(filePath, new Uint8Array(arrayBuffer));
+			}
+
+			setSaveNoteMessage(`已保存到：${filePath}`);
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : '保存失败';
+			setSaveNoteMessage(`保存失败：${msg}`);
+		} finally {
+			setIsSavingToNote(false);
+		}
+	}, [ensureDirectoryExists, settings?.imageSaveFolder, settings?.imageSaveFolderEnabled]);
+
+	if (!isProviderConfigured) {
 		return (
 			<div className="text-center py-8">
-				<p className="text-sm text-muted-foreground mb-2">需要配置 ZenMux API 才能使用</p>
+				<p className="text-sm text-muted-foreground mb-2">需要先配置当前 AI 平台的 API 才能使用</p>
 				{onOpenAISettings && (
 					<button
 						onClick={onOpenAISettings}
@@ -262,9 +347,15 @@ export const PlaygroundPanel: React.FC<PlaygroundPanelProps> = ({settings, onOpe
 								关闭
 							</button>
 							<button
+								onClick={() => saveImageToNote(previewImage)}
+								disabled={isSavingToNote}
+								className="px-4 py-2 text-sm font-medium text-[#0F766E] bg-[#D1FAE5] hover:bg-[#A7F3D0] rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+							>
+								{isSavingToNote ? '保存中...' : '插入到笔记库'}
+							</button>
+							<button
 								onClick={() => {
 									handleDownload(previewImage, 0);
-									setPreviewImage(null);
 								}}
 								className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors"
 							>
@@ -272,6 +363,9 @@ export const PlaygroundPanel: React.FC<PlaygroundPanelProps> = ({settings, onOpe
 								下载图片
 							</button>
 						</div>
+						{saveNoteMessage && (
+							<div className="px-3 pb-3 text-xs text-[#4B5563]">{saveNoteMessage}</div>
+						)}
 					</div>
 				</div>
 			)}

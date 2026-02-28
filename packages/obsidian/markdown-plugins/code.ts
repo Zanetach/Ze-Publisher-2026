@@ -1,13 +1,13 @@
-import {toPng} from "html-to-image";
-import {Tokens} from "marked";
-import {MarkdownView} from "obsidian";
-import {WeixinCodeFormatter} from "./weixin-code-formatter";
-import {GetCallout, getAdmonitionInlineStyles} from "./callouts";
-import {MathRendererQueue} from "./math";
-import {CardDataManager} from "../html-plugins/code-blocks";
+import { toPng } from "html-to-image";
+import { Tokens } from "marked";
+import { MarkdownView } from "obsidian";
+import { WeixinCodeFormatter } from "./weixin-code-formatter";
+import { GetCallout, getAdmonitionInlineStyles } from "./callouts";
+import { MathRendererQueue } from "./math";
+import { CardDataManager } from "../html-plugins/code-blocks";
 
-import {logger} from "../../shared/src/logger";
-import {MarkdownPlugin as UnifiedMarkdownPlugin} from "../shared/plugin/markdown-plugin";
+import { logger } from "../../shared/src/logger";
+import { MarkdownPlugin as UnifiedMarkdownPlugin } from "../shared/plugin/markdown-plugin";
 
 const MermaidSectionClassName = "note-mermaid";
 const MermaidImgClassName = "note-mermaid-img";
@@ -15,6 +15,13 @@ const MermaidImgClassName = "note-mermaid-img";
 export class CodeRenderer extends UnifiedMarkdownPlugin {
 	showLineNumber: boolean;
 	mermaidIndex: number;
+
+	private escapeHtml(input: string): string {
+		return input
+			.replace(/&/g, "&amp;")
+			.replace(/</g, "&lt;")
+			.replace(/>/g, "&gt;");
+	}
 
 	static getMathType(lang: string | null) {
 		if (!lang) return null;
@@ -38,10 +45,11 @@ export class CodeRenderer extends UnifiedMarkdownPlugin {
 	}
 
 	codeRenderer(code: string, infostring: string | undefined): string {
-		logger.debug("codeRenderer", {code, infostring});
+		logger.debug("codeRenderer", { code, infostring });
 
 		const lang = (infostring || "").match(/^\S*/)?.[0];
 		code = code.replace(/\n$/, "") + "\n";
+		const escapedCode = this.escapeHtml(code);
 
 		// 如果启用了微信代码格式化，直接返回微信格式
 		if (this.settings.enableWeixinCodeFormat) {
@@ -54,10 +62,10 @@ export class CodeRenderer extends UnifiedMarkdownPlugin {
 
 		// 简化结构，去掉多余的wrapper
 		if (!lang) {
-			return `<pre><code>${code}</code></pre>`;
+			return `<pre><code>${escapedCode}</code></pre>`;
 		}
 
-		return `<pre><code class="hljs language-${lang}">${code}</code></pre>`;
+		return `<pre><code class="hljs language-${lang}">${escapedCode}</code></pre>`;
 	}
 
 	parseCard(htmlString: string) {
@@ -80,7 +88,7 @@ export class CodeRenderer extends UnifiedMarkdownPlugin {
 	}
 
 	renderCard(token: Tokens.Code) {
-		const {id, headimg, nickname, signature} = this.parseCard(token.text);
+		const { id, headimg, nickname, signature } = this.parseCard(token.text);
 		if (id === "") {
 			return "<span>公众号卡片数据错误，没有id</span>";
 		}
@@ -114,14 +122,14 @@ export class CodeRenderer extends UnifiedMarkdownPlugin {
 					.then((dataUrl) => {
 						this.callback.updateElementByID(
 							containerId,
-							`<img id="${imgId}" class="${MermaidImgClassName}" src="${dataUrl}"></img>`
+							`<img id="${imgId}" class="${MermaidImgClassName}" src="${dataUrl}"></img>`,
 						);
 					})
 					.catch((error) => {
 						console.error("oops, something went wrong!", error);
 						this.callback.updateElementByID(
 							containerId,
-							failElement
+							failElement,
 						);
 					});
 				return `<section id="${containerId}" class="${MermaidSectionClassName}">渲染中</section>`;
@@ -149,18 +157,22 @@ export class CodeRenderer extends UnifiedMarkdownPlugin {
 			// - "ad-tip {TITLE: TITLE 2}"
 			const langParts = token.lang.trim().split(/\s+(.+)/);
 			const calloutTypeWithPrefix = langParts[0]; // "ad-tip"
-			const langTitle = langParts[1] || ''; // 剩余部分作为标题
+			const langTitle = langParts[1] || ""; // 剩余部分作为标题
 
 			// 检查是否是 ad-xxx 格式
-			if (!calloutTypeWithPrefix.startsWith('ad-')) {
+			if (!calloutTypeWithPrefix.startsWith("ad-")) {
 				return this.codeRenderer(token.text, token.lang);
 			}
 
 			// 提取 callout 类型（去掉 'ad-' 前缀）
-			const calloutType = calloutTypeWithPrefix.substring(3).toLowerCase();
+			const calloutType = calloutTypeWithPrefix
+				.substring(3)
+				.toLowerCase();
 
 			// 提取标题 - 默认使用 callout 类型作为标题
-			let title = calloutType.charAt(0).toUpperCase() + calloutType.slice(1).toLowerCase();
+			let title =
+				calloutType.charAt(0).toUpperCase() +
+				calloutType.slice(1).toLowerCase();
 
 			// 如果 langTitle 存在，解析它
 			if (langTitle) {
@@ -170,9 +182,13 @@ export class CodeRenderer extends UnifiedMarkdownPlugin {
 					// 尝试解析 JSON 格式
 					try {
 						// 处理简单的 {TITLE: xxx} 格式（不是严格的 JSON）
-						const simpleMatch = langTitle.match(/\{\s*(?:TITLE|title)\s*:\s*(.+?)\s*\}/);
+						const simpleMatch = langTitle.match(
+							/\{\s*(?:TITLE|title)\s*:\s*(.+?)\s*\}/,
+						);
 						if (simpleMatch) {
-							title = simpleMatch[1].replace(/^["']|["']$/g, '').trim();
+							title = simpleMatch[1]
+								.replace(/^["']|["']$/g, "")
+								.trim();
 						} else {
 							// 尝试作为标准 JSON 解析
 							const parsed = JSON.parse(langTitle);
@@ -191,7 +207,7 @@ export class CodeRenderer extends UnifiedMarkdownPlugin {
 			}
 
 			// 解析内容，支持 title: xxx 语法
-			const lines = token.text.split('\n');
+			const lines = token.text.split("\n");
 			let content = token.text.trim();
 			let contentStartIndex = 0;
 
@@ -204,37 +220,52 @@ export class CodeRenderer extends UnifiedMarkdownPlugin {
 				title = titleMatch[1].trim();
 				contentStartIndex = 1;
 				// 跳过第一行和可能的空行
-				while (contentStartIndex < lines.length && lines[contentStartIndex].trim() === '') {
+				while (
+					contentStartIndex < lines.length &&
+					lines[contentStartIndex].trim() === ""
+				) {
 					contentStartIndex++;
 				}
-				content = lines.slice(contentStartIndex).join('\n').trim();
-			} else if (firstLine !== '' && lines.length > 1 && lines[1].trim() === '') {
+				content = lines.slice(contentStartIndex).join("\n").trim();
+			} else if (
+				firstLine !== "" &&
+				lines.length > 1 &&
+				lines[1].trim() === ""
+			) {
 				// 如果第一行不是空行且第二行是空行，第一行作为标题
-				title = title.toUpperCase() + ': ' + firstLine;
+				title = title.toUpperCase() + ": " + firstLine;
 				contentStartIndex = 2;
 				// 跳过可能的多个空行
-				while (contentStartIndex < lines.length && lines[contentStartIndex].trim() === '') {
+				while (
+					contentStartIndex < lines.length &&
+					lines[contentStartIndex].trim() === ""
+				) {
 					contentStartIndex++;
 				}
-				content = lines.slice(contentStartIndex).join('\n').trim();
+				content = lines.slice(contentStartIndex).join("\n").trim();
 			}
-			
+
 			// 解析内容为 HTML
-			let body = '';
+			let body = "";
 			if (content) {
 				if (this.marked) {
 					// 如果 marked 实例存在，使用它解析
 					try {
 						body = this.marked.parser(this.marked.lexer(content));
 					} catch (parseError) {
-						logger.error('Failed to parse content with marked:', parseError);
+						logger.error(
+							"Failed to parse content with marked:",
+							parseError,
+						);
 						// 回退到简单的段落包装
-						body = `<p>${content.replace(/\n/g, '<br>')}</p>`;
+						body = `<p>${content.replace(/\n/g, "<br>")}</p>`;
 					}
 				} else {
 					// 如果 marked 实例不存在，使用简单的段落包装
-					logger.debug('Marked instance not available, using simple HTML wrapping');
-					body = `<p>${content.replace(/\n/g, '<br>')}</p>`;
+					logger.debug(
+						"Marked instance not available, using simple HTML wrapping",
+					);
+					body = `<p>${content.replace(/\n/g, "<br>")}</p>`;
 				}
 			}
 
@@ -249,13 +280,22 @@ export class CodeRenderer extends UnifiedMarkdownPlugin {
 			const styles = getAdmonitionInlineStyles(calloutType);
 
 			// 处理SVG图标，添加内联样式 - 极致低调设计（平衡视觉效果）
-			const styledIcon = info.icon.replace('<svg', '<svg style="width: 100%; height: 100%; display: block; opacity: 0.55;"');
+			const styledIcon = info.icon.replace(
+				"<svg",
+				'<svg style="width: 100%; height: 100%; display: block; opacity: 0.55;"',
+			);
 
 			// 给 body 中的 <p> 标签添加内联样式（在 HTML 生成阶段，而非后处理）
-			const addInlineStylesToParagraphs = (html: string, paragraphStyle: string): string => {
+			const addInlineStylesToParagraphs = (
+				html: string,
+				paragraphStyle: string,
+			): string => {
 				return html.replace(/<p>/g, `<p style="${paragraphStyle}">`);
 			};
-			const styledBody = addInlineStylesToParagraphs(body, styles.paragraph);
+			const styledBody = addInlineStylesToParagraphs(
+				body,
+				styles.paragraph,
+			);
 
 			// 生成带内联样式的 HTML（兼容微信公众号）
 			return `<section data-component="admonition" data-type="${calloutType}" data-variant="${info.style}" style="${styles.container}">
@@ -266,7 +306,7 @@ export class CodeRenderer extends UnifiedMarkdownPlugin {
 				<div data-element="admonition-content" style="${styles.content}">${styledBody}</div>
 			</section>`;
 		} catch (error) {
-			logger.error('Error rendering ad callout:', error);
+			logger.error("Error rendering ad callout:", error);
 			return this.codeRenderer(token.text, token.lang);
 		}
 	}
@@ -286,23 +326,22 @@ export class CodeRenderer extends UnifiedMarkdownPlugin {
 						// 其他代码块处理逻辑
 						if (this.settings.isAuthKeyVaild()) {
 							const type = CodeRenderer.getMathType(
-								token.lang ?? ""
+								token.lang ?? "",
 							);
 							if (type) {
 								return MathRendererQueue.getInstance().render(
 									token,
 									false,
 									type,
-									this.callback
+									this.callback,
 								);
 							}
-							if (
-								token.lang &&
-								token.lang.trim().toLocaleLowerCase() ==
-								"mermaid"
-							) {
-								return this.renderMermaid(token);
-							}
+						}
+						if (
+							token.lang &&
+							token.lang.trim().toLocaleLowerCase() == "mermaid"
+						) {
+							return this.codeRenderer(token.text, "mermaid");
 						}
 						if (
 							token.lang &&

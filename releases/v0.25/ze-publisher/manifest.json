@@ -1,0 +1,10 @@
+{
+	"id": "ze-publisher",
+	"name": "Ze Publisher",
+	"version": "0.23.4",
+	"minAppVersion": "1.4.5",
+	"description": "All-in-one content distribution platform for Obsidian. Publish content to WeChat, Zhihu, XiaoHongShu, Twitter and more, with perfect format preservation and rich customization options.",
+	"author": "zane",
+	"authorUrl": "",
+	"isDesktopOnly": false
+}

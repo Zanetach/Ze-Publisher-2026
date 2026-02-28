@@ -2,7 +2,7 @@ import { ViteReactSettings, AIModel } from '../types';
 import { logger } from '../../../shared/src/logger';
 
 // ============ 持久化模型缓存 ============
-const CACHE_KEY = 'lovpen-model-cache';
+const CACHE_KEY = 'zepublish-model-cache';
 const CACHE_TTL = 1000 * 60 * 60 * 24; // 24小时缓存
 
 interface ModelCacheEntry {
@@ -14,6 +14,7 @@ interface ModelCacheStore {
 	claude?: ModelCacheEntry;
 	openrouter?: ModelCacheEntry;
 	zenmux?: ModelCacheEntry;
+	gemini?: ModelCacheEntry;
 }
 
 // 从 localStorage 读取缓存
@@ -39,7 +40,7 @@ function setModelCache(cache: ModelCacheStore): void {
 }
 
 // 获取指定 provider 的缓存
-function getCachedModels(provider: 'claude' | 'openrouter' | 'zenmux'): AIModel[] | null {
+function getCachedModels(provider: 'claude' | 'openrouter' | 'zenmux' | 'gemini'): AIModel[] | null {
 	const cache = getModelCache();
 	const entry = cache[provider];
 	if (entry && Date.now() - entry.timestamp < CACHE_TTL) {
@@ -50,7 +51,7 @@ function getCachedModels(provider: 'claude' | 'openrouter' | 'zenmux'): AIModel[
 }
 
 // 设置指定 provider 的缓存
-function setCachedModels(provider: 'claude' | 'openrouter' | 'zenmux', models: AIModel[]): void {
+function setCachedModels(provider: 'claude' | 'openrouter' | 'zenmux' | 'gemini', models: AIModel[]): void {
 	const cache = getModelCache();
 	cache[provider] = { models, timestamp: Date.now() };
 	setModelCache(cache);
@@ -60,6 +61,7 @@ function setCachedModels(provider: 'claude' | 'openrouter' | 'zenmux', models: A
 export const CLAUDE_MODELS: AIModel[] = [];
 export const OPENROUTER_MODELS: AIModel[] = [];
 export const ZENMUX_MODELS: AIModel[] = [];
+export const GEMINI_MODELS: AIModel[] = [];
 
 // ============ 动态模型获取 ============
 
@@ -71,13 +73,13 @@ export async function fetchClaudeModels(apiKey: string): Promise<AIModel[]> {
 		return cached;
 	}
 
-	if (!window.lovpenReactAPI?.requestUrl) {
+	if (!window.zepublishReactAPI?.requestUrl) {
 		logger.warn('requestUrl not available, using fallback models');
 		return CLAUDE_MODELS as AIModel[];
 	}
 
 	try {
-		const response = await window.lovpenReactAPI.requestUrl({
+		const response = await window.zepublishReactAPI.requestUrl({
 			url: 'https://api.anthropic.com/v1/models',
 			method: 'GET',
 			headers: {
@@ -124,12 +126,12 @@ export async function fetchOpenRouterModels(apiKey: string): Promise<AIModel[]> 
 		return cached;
 	}
 
-	if (!window.lovpenReactAPI?.requestUrl) {
+	if (!window.zepublishReactAPI?.requestUrl) {
 		return OPENROUTER_MODELS as AIModel[];
 	}
 
 	try {
-		const response = await window.lovpenReactAPI.requestUrl({
+		const response = await window.zepublishReactAPI.requestUrl({
 			url: 'https://openrouter.ai/api/v1/models',
 			method: 'GET',
 			headers: {
@@ -178,7 +180,7 @@ export async function fetchZenMuxModels(_apiKey: string): Promise<AIModel[]> {
 		return cached;
 	}
 
-	if (!window.lovpenReactAPI?.requestUrl) {
+	if (!window.zepublishReactAPI?.requestUrl) {
 		logger.warn('[ZenMux] requestUrl not available');
 		return ZENMUX_MODELS as AIModel[];
 	}
@@ -189,7 +191,7 @@ export async function fetchZenMuxModels(_apiKey: string): Promise<AIModel[]> {
 	try {
 		// ZenMux 使用前端 API 获取模型列表，不需要认证
 		// 注意：Obsidian requestUrl 可能对某些 headers 敏感，尝试最小化 headers
-		const response = await window.lovpenReactAPI.requestUrl({
+		const response = await window.zepublishReactAPI.requestUrl({
 			url: apiUrl,
 			method: 'GET',
 			headers: {
@@ -242,8 +244,65 @@ export async function fetchZenMuxModels(_apiKey: string): Promise<AIModel[]> {
 	}
 }
 
+// 从 Gemini API 获取模型列表
+export async function fetchGeminiModels(apiKey: string): Promise<AIModel[]> {
+	const cached = getCachedModels('gemini');
+	if (cached) {
+		return cached;
+	}
+
+	if (!window.zepublishReactAPI?.requestUrl) {
+		logger.warn('requestUrl not available, using fallback Gemini models');
+		return GEMINI_MODELS as AIModel[];
+	}
+
+	try {
+		const response = await window.zepublishReactAPI.requestUrl({
+			url: 'https://generativelanguage.googleapis.com/v1beta/models',
+			method: 'GET',
+			headers: {
+				'x-goog-api-key': apiKey
+			}
+		});
+
+		if (response.status !== 200) {
+			throw new Error(`API error: ${response.status}`);
+		}
+
+		const data = response.json;
+		const modelsRaw = (data.models || []).filter((m: any) => {
+			const methods = m.supportedGenerationMethods || [];
+			return methods.includes('generateContent');
+		});
+
+		const models: AIModel[] = modelsRaw.map((m: any) => {
+			const id = String(m.name || '').replace(/^models\//, '');
+			return {
+				id,
+				name: m.displayName || id,
+				description: inferDescription(id),
+				category: inferCategory(id),
+				pricing: inferPricing(id),
+				recommended: id.includes('2.5-pro') || id.includes('2.5-flash')
+			};
+		});
+
+		models.sort((a, b) => {
+			const order = { fast: 0, balanced: 1, powerful: 2 };
+			return order[a.category] - order[b.category];
+		});
+
+		setCachedModels('gemini', models);
+		logger.info(`Fetched ${models.length} Gemini models from API`);
+		return models;
+	} catch (error) {
+		logger.error('Failed to fetch Gemini models:', error);
+		return GEMINI_MODELS as AIModel[];
+	}
+}
+
 // 清除模型缓存
-export function clearModelCache(provider?: 'claude' | 'openrouter' | 'zenmux') {
+export function clearModelCache(provider?: 'claude' | 'openrouter' | 'zenmux' | 'gemini') {
 	const cache = getModelCache();
 	if (provider) {
 		delete cache[provider];
@@ -342,6 +401,8 @@ export async function analyzeContentWithAI(
 		return analyzeWithOpenRouter(content, filename, promptTemplate, settings, frontmatter);
 	} else if (provider === 'zenmux') {
 		return analyzeWithZenMux(content, filename, promptTemplate, settings, frontmatter);
+	} else if (provider === 'gemini') {
+		return analyzeWithGemini(content, filename, promptTemplate, settings, frontmatter);
 	} else {
 		return analyzeWithClaude(content, filename, promptTemplate, settings, frontmatter);
 	}
@@ -379,11 +440,11 @@ async function analyzeWithClaude(
 	logger.info('Using Claude API for analysis');
 
 	// 调用Claude API
-	if (!window.lovpenReactAPI || typeof window.lovpenReactAPI.requestUrl === 'undefined') {
+	if (!window.zepublishReactAPI || typeof window.zepublishReactAPI.requestUrl === 'undefined') {
 		throw new Error('此功能仅在Obsidian环境中可用');
 	}
 	
-	const requestUrl = window.lovpenReactAPI.requestUrl;
+	const requestUrl = window.zepublishReactAPI.requestUrl;
 	const response = await requestUrl({
 		url: 'https://api.anthropic.com/v1/messages',
 		method: 'POST',
@@ -516,11 +577,11 @@ async function analyzeWithOpenRouter(
 	}
 
 	// 调用OpenRouter API
-	if (!window.lovpenReactAPI || typeof window.lovpenReactAPI.requestUrl === 'undefined') {
+	if (!window.zepublishReactAPI || typeof window.zepublishReactAPI.requestUrl === 'undefined') {
 		throw new Error('此功能仅在Obsidian环境中可用');
 	}
 	
-	const requestUrl = window.lovpenReactAPI.requestUrl;
+	const requestUrl = window.zepublishReactAPI.requestUrl;
 	const response = await requestUrl({
 		url: 'https://openrouter.ai/api/v1/chat/completions',
 		method: 'POST',
@@ -528,7 +589,7 @@ async function analyzeWithOpenRouter(
 			'Authorization': `Bearer ${settings.openRouterApiKey}`,
 			'Content-Type': 'application/json',
 			'HTTP-Referer': 'https://obsidian.md',
-			'X-Title': 'LovPen Obsidian Plugin'
+			'X-Title': 'Ze Publisher Obsidian Plugin'
 		},
 		body: JSON.stringify({
 			model: settings.openRouterModel,
@@ -614,11 +675,11 @@ async function analyzeWithZenMux(
 		}
 	};
 
-	if (!window.lovpenReactAPI || typeof window.lovpenReactAPI.requestUrl === 'undefined') {
+	if (!window.zepublishReactAPI || typeof window.zepublishReactAPI.requestUrl === 'undefined') {
 		throw new Error('此功能仅在Obsidian环境中可用');
 	}
 
-	const requestUrl = window.lovpenReactAPI.requestUrl;
+	const requestUrl = window.zepublishReactAPI.requestUrl;
 	const response = await requestUrl({
 		url: 'https://zenmux.ai/api/v1/chat/completions',
 		method: 'POST',
@@ -660,6 +721,82 @@ async function analyzeWithZenMux(
 	}
 }
 
+// 使用 Gemini API 分析（Google Generative Language API）
+async function analyzeWithGemini(
+	content: string,
+	filename: string,
+	promptTemplate: string,
+	settings: ViteReactSettings,
+	frontmatter: any
+): Promise<ArticleInfoResult> {
+	if (!settings.geminiApiKey) {
+		throw new Error('请配置 Gemini API密钥');
+	}
+	if (!settings.geminiModel) {
+		throw new Error('请选择或输入 Gemini 模型ID');
+	}
+
+	const templateData = {
+		content: content,
+		filename: filename,
+		personalInfo: settings.personalInfo || {},
+		frontmatter: frontmatter,
+		today: new Date().toISOString().split('T')[0]
+	};
+
+	const Handlebars = (await import('handlebars')).default;
+	const template = Handlebars.compile(promptTemplate);
+	const prompt = template(templateData);
+
+	logger.info('Using Gemini API for analysis');
+
+	if (!window.zepublishReactAPI || typeof window.zepublishReactAPI.requestUrl === 'undefined') {
+		throw new Error('此功能仅在Obsidian环境中可用');
+	}
+
+	const requestUrl = window.zepublishReactAPI.requestUrl;
+	const response = await requestUrl({
+		url: `https://generativelanguage.googleapis.com/v1beta/models/${settings.geminiModel}:generateContent`,
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			'x-goog-api-key': settings.geminiApiKey
+		},
+		body: JSON.stringify({
+			contents: [
+				{
+					role: 'user',
+					parts: [{ text: prompt }]
+				}
+			],
+			generationConfig: {
+				responseMimeType: 'application/json',
+				temperature: 0.2
+			}
+		})
+	});
+
+	if (response.status !== 200) {
+		const errorData = response.json;
+		throw new Error(`Gemini API调用失败: ${errorData?.error?.message || response.status}`);
+	}
+
+	const result = response.json;
+	const aiResponse =
+		result?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text || '').join('\n') || '';
+
+	try {
+		return JSON.parse(aiResponse);
+	} catch {
+		const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+		if (jsonMatch) {
+			return JSON.parse(jsonMatch[0]);
+		}
+		logger.error('解析Gemini响应失败:', aiResponse);
+		throw new Error('无法解析Gemini的响应格式');
+	}
+}
+
 // 测试API连接
 export async function testAIConnection(settings: ViteReactSettings): Promise<void> {
 	const provider = settings.aiProvider || 'claude';
@@ -668,6 +805,8 @@ export async function testAIConnection(settings: ViteReactSettings): Promise<voi
 		return testOpenRouterConnection(settings);
 	} else if (provider === 'zenmux') {
 		return testZenMuxConnection(settings);
+	} else if (provider === 'gemini') {
+		return testGeminiConnection(settings);
 	} else {
 		return testClaudeConnection(settings);
 	}
@@ -679,11 +818,11 @@ async function testClaudeConnection(settings: ViteReactSettings): Promise<void> 
 		throw new Error('请输入Claude API密钥');
 	}
 
-	if (!window.lovpenReactAPI || typeof window.lovpenReactAPI.requestUrl === 'undefined') {
+	if (!window.zepublishReactAPI || typeof window.zepublishReactAPI.requestUrl === 'undefined') {
 		throw new Error('此功能仅在Obsidian环境中可用');
 	}
 	
-	const requestUrl = window.lovpenReactAPI.requestUrl;
+	const requestUrl = window.zepublishReactAPI.requestUrl;
 	const response = await requestUrl({
 		url: 'https://api.anthropic.com/v1/messages',
 		method: 'POST',
@@ -715,11 +854,11 @@ async function testOpenRouterConnection(settings: ViteReactSettings): Promise<vo
 		throw new Error('请输入OpenRouter API密钥');
 	}
 
-	if (!window.lovpenReactAPI || typeof window.lovpenReactAPI.requestUrl === 'undefined') {
+	if (!window.zepublishReactAPI || typeof window.zepublishReactAPI.requestUrl === 'undefined') {
 		throw new Error('此功能仅在Obsidian环境中可用');
 	}
 	
-	const requestUrl = window.lovpenReactAPI.requestUrl;
+	const requestUrl = window.zepublishReactAPI.requestUrl;
 	const response = await requestUrl({
 		url: 'https://openrouter.ai/api/v1/chat/completions',
 		method: 'POST',
@@ -727,7 +866,7 @@ async function testOpenRouterConnection(settings: ViteReactSettings): Promise<vo
 			'Authorization': `Bearer ${settings.openRouterApiKey}`,
 			'Content-Type': 'application/json',
 			'HTTP-Referer': 'https://obsidian.md',
-			'X-Title': 'LovPen Obsidian Plugin'
+			'X-Title': 'Ze Publisher Obsidian Plugin'
 		},
 		body: JSON.stringify({
 			model: settings.openRouterModel,
@@ -753,11 +892,11 @@ async function testZenMuxConnection(settings: ViteReactSettings): Promise<void> 
 		throw new Error('请输入ZenMux API密钥');
 	}
 
-	if (!window.lovpenReactAPI || typeof window.lovpenReactAPI.requestUrl === 'undefined') {
+	if (!window.zepublishReactAPI || typeof window.zepublishReactAPI.requestUrl === 'undefined') {
 		throw new Error('此功能仅在Obsidian环境中可用');
 	}
 
-	const requestUrl = window.lovpenReactAPI.requestUrl;
+	const requestUrl = window.zepublishReactAPI.requestUrl;
 	const response = await requestUrl({
 		url: 'https://zenmux.ai/api/v1/chat/completions',
 		method: 'POST',
@@ -769,6 +908,46 @@ async function testZenMuxConnection(settings: ViteReactSettings): Promise<void> 
 			model: settings.zenmuxModel,
 			messages: [{ role: 'user', content: 'Hi' }],
 			max_tokens: 10
+		})
+	});
+
+	if (response.status !== 200) {
+		const errorData = response.json;
+		throw new Error(`API调用失败: ${errorData?.error?.message || response.status}`);
+	}
+}
+
+// 测试Gemini连接
+async function testGeminiConnection(settings: ViteReactSettings): Promise<void> {
+	if (!settings.geminiApiKey) {
+		throw new Error('请输入 Gemini API密钥');
+	}
+	if (!settings.geminiModel) {
+		throw new Error('请选择 Gemini 模型');
+	}
+
+	if (!window.zepublishReactAPI || typeof window.zepublishReactAPI.requestUrl === 'undefined') {
+		throw new Error('此功能仅在Obsidian环境中可用');
+	}
+
+	const requestUrl = window.zepublishReactAPI.requestUrl;
+	const response = await requestUrl({
+		url: `https://generativelanguage.googleapis.com/v1beta/models/${settings.geminiModel}:generateContent`,
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			'x-goog-api-key': settings.geminiApiKey
+		},
+		body: JSON.stringify({
+			contents: [
+				{
+					role: 'user',
+					parts: [{ text: 'Hi' }]
+				}
+			],
+			generationConfig: {
+				maxOutputTokens: 8
+			}
 		})
 	});
 

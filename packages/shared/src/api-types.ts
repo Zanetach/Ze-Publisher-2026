@@ -200,17 +200,17 @@ export interface CodeBlockAPI {
 }
 
 // 完整的全局API接口
-export interface LovpenReactAPI extends TemplateKitAPI, SettingsAPI, CodeBlockAPI {
+export interface ZePublishReactAPI extends TemplateKitAPI, SettingsAPI, CodeBlockAPI {
 	persistentStorage: PersistentStorageAPI;
 	requestUrl: RequestUrlFunction;
 }
 
 // Window全局类型扩展
-export interface LovpenGlobalAPI {
-	lovpenReactAPI: LovpenReactAPI;
+export interface ZePublishGlobalAPI {
+	zepublishReactAPI: ZePublishReactAPI;
 }
 
 declare global {
-	interface Window extends LovpenGlobalAPI {
+	interface Window extends ZePublishGlobalAPI {
 	}
 }

@@ -7,10 +7,10 @@
 			"@/*": [
 				"../frontend/src/*"
 			],
-			"@lovpen/shared": [
+			"@ze-publisher/shared": [
 				"../shared/index.ts"
 			],
-			"@lovpen/shared/*": [
+			"@ze-publisher/shared/*": [
 				"../shared/*"
 			]
 		}

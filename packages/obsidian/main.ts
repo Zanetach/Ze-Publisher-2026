@@ -1,16 +1,17 @@
-import {App, Plugin, PluginManifest, WorkspaceLeaf} from "obsidian";
-import {VIEW_TYPE_NOTE_PREVIEW} from "./constants";
+import { App, Plugin, PluginManifest, WorkspaceLeaf } from "obsidian";
+import { VIEW_TYPE_NOTE_PREVIEW } from "./constants";
 import AssetsManager from "./assets";
-import {NotePreviewExternal} from "./note-preview-external";
-import {LovpenSettingTab} from "./setting-tab";
-import {NMPSettings} from "./settings";
+import { NotePreviewExternal } from "./note-preview-external";
+import { ZePublishSettingTab } from "./setting-tab";
+import { NMPSettings } from "./settings";
 import TemplateManager from "./template-manager";
 import TemplateKitManager from "./template-kit-manager";
-import {setVersion, uevent} from "./utils";
+import { setVersion, uevent } from "./utils";
+import { resolvePluginDir } from "./plugin-paths";
 
-import {logger} from "../shared/src/logger";
+import { logger } from "../shared/src/logger";
 
-export default class LovpenPlugin extends Plugin {
+export default class ZePublishPlugin extends Plugin {
 	settings: NMPSettings;
 	assetsManager: AssetsManager;
 	templateKitManager: TemplateKitManager;
@@ -23,9 +24,10 @@ export default class LovpenPlugin extends Plugin {
 	}
 
 	async onload() {
-		logger.info("Loading Lovpen");
+		logger.info("Loading Ze Publisher");
 		setVersion(this.manifest.version);
 		uevent("load");
+		await this.cleanupNestedPluginDir();
 		await this.loadSettings();
 		await this.assetsManager.loadAssets();
 
@@ -35,20 +37,25 @@ export default class LovpenPlugin extends Plugin {
 		await templateManager.loadTemplates();
 
 		// 初始化模板套装管理器
-		this.templateKitManager = TemplateKitManager.getInstance(this.app, this);
+		this.templateKitManager = TemplateKitManager.getInstance(
+			this.app,
+			this,
+		);
 		await this.templateKitManager.onload();
-
 
 		this.registerView(
 			VIEW_TYPE_NOTE_PREVIEW,
-			(leaf) => new NotePreviewExternal(leaf)
+			(leaf) => new NotePreviewExternal(leaf),
 		);
 
-		const ribbonIconEl = this.addRibbonIcon('clipboard-paste', '复制到公众号', () => {
+		const ribbonIconEl = this.addRibbonIcon(
+			"clipboard-paste",
+			"复制到公众号",
+			() => {
 				this.activateView();
-			}
+			},
 		);
-		ribbonIconEl.addClass('lovpen-plugin-ribbon-class');
+		ribbonIconEl.addClass("zepublish-plugin-ribbon-class");
 
 		this.addCommand({
 			id: "open-note-preview",
@@ -58,7 +65,7 @@ export default class LovpenPlugin extends Plugin {
 			},
 		});
 
-		this.addSettingTab(new LovpenSettingTab(this.app, this));
+		this.addSettingTab(new ZePublishSettingTab(this.app, this));
 	}
 
 	async onunload() {
@@ -81,7 +88,9 @@ export default class LovpenPlugin extends Plugin {
 		// 确保 settings 已初始化
 		if (!this.settings) {
 			this.settings = NMPSettings.getInstance();
-			logger.warn("Settings was undefined in saveSettings, initialized it");
+			logger.warn(
+				"Settings was undefined in saveSettings, initialized it",
+			);
 		}
 
 		// 保存所有设置 - 使用实例方法而不是静态方法
@@ -100,7 +109,7 @@ export default class LovpenPlugin extends Plugin {
 	}
 
 	async activateView() {
-		const {workspace} = this.app;
+		const { workspace } = this.app;
 
 		let leaf: WorkspaceLeaf | null = null;
 		const leaves = workspace.getLeavesOfType(VIEW_TYPE_NOTE_PREVIEW);
@@ -124,10 +133,48 @@ export default class LovpenPlugin extends Plugin {
 	 */
 	onViewWidthChange(width: number): void {
 		this.currentViewWidth = width;
-		console.log(`[LovpenPlugin] onViewWidthChange called: ${width}px`);
-		logger.info(`[LovpenPlugin] 视图宽度已更新: ${width}px`);
+		console.log(`[Ze PublisherPlugin] onViewWidthChange called: ${width}px`);
+		logger.info(`[Ze PublisherPlugin] 视图宽度已更新: ${width}px`);
 
 		// 在这里可以添加自定义的宽度变化处理逻辑
 		// 例如：调整UI布局、更新设置、触发重新渲染等
+	}
+
+	/**
+	 * 清理错误的嵌套插件目录：
+	 * .obsidian/plugins/.obsidian/plugins/<pluginId>
+	 */
+	private async cleanupNestedPluginDir(): Promise<void> {
+		try {
+			const adapter = this.app.vault.adapter as any;
+			const configDir = String(
+				this.app.vault.configDir || ".obsidian",
+			).replace(/\/+$/, "");
+			const pluginId = String(this.manifest?.id || "ze-publisher");
+			const nestedDir = `${configDir}/plugins/${configDir}/plugins/${pluginId}`;
+			const activeDir = resolvePluginDir(this.app, pluginId).replace(
+				/\/+$/,
+				"",
+			);
+
+			if (nestedDir === activeDir) {
+				logger.warn(
+					`[Ze Publisher] 当前插件目录即嵌套目录，跳过清理: ${nestedDir}`,
+				);
+				return;
+			}
+
+			if (!(await adapter.exists(nestedDir))) {
+				return;
+			}
+
+			logger.warn(
+				`[Ze Publisher] 检测到错误嵌套目录，准备清理: ${nestedDir}`,
+			);
+			await adapter.rmdir(nestedDir, true);
+			logger.info(`[Ze Publisher] 已清理错误嵌套目录: ${nestedDir}`);
+		} catch (error) {
+			logger.warn("[Ze Publisher] 清理错误嵌套目录失败:", error);
+		}
 	}
 }

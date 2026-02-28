@@ -1,17 +1,16 @@
-import {wxKeyInfo} from './weixin-api';
+import { wxKeyInfo } from "./weixin-api";
 
-
-import {logger} from "../shared/src/logger";
+import { logger } from "../shared/src/logger";
 
 export enum LinkFootnoteMode {
-	None = 'none',
-	All = 'all',
-	NonWx = 'non-wx'
+	None = "none",
+	All = "all",
+	NonWx = "non-wx",
 }
 
 export enum LinkDescriptionMode {
-	Empty = 'empty',
-	Raw = 'raw'
+	Empty = "empty",
+	Raw = "raw",
 }
 
 // 接口定义所有设置项，方便类型检查
@@ -64,7 +63,7 @@ interface SettingsData {
 	/** 认证密钥 */
 	authKey?: string;
 	/** 微信公众号配置信息 */
-	wxInfo?: { name: string, appid: string, secret: string }[];
+	wxInfo?: { name: string; appid: string; secret: string }[];
 	/** 分发服务配置 */
 	distributionConfig?: DistributionConfig | null;
 
@@ -73,11 +72,17 @@ interface SettingsData {
 	pluginsConfig?: Record<string, Record<string, any>>;
 
 	// ===== 个人信息设置 =====
+	/** 是否启用默认作者资料（当未填写作者时生效） */
+	enableDefaultAuthorProfile?: boolean;
+	/** 默认作者名称（当未填写作者时生效） */
+	defaultAuthorName?: string;
+	/** 默认作者图片（data URL） */
+	defaultAuthorImageData?: string;
 	/** 个人信息 */
 	personalInfo?: {
 		name: string;
 		avatar?: {
-			type: 'default' | 'uploaded' | 'initials';
+			type: "default" | "uploaded" | "initials";
 			data?: string;
 			initials?: string;
 			backgroundColor?: string;
@@ -116,7 +121,13 @@ interface SettingsData {
 
 	// ===== 工具栏设置 =====
 	/** 工具栏位置 */
-	toolbarPosition?: 'left' | 'right';
+	toolbarPosition?: "left" | "right";
+	/** 插件UI主题模式（非排版主题） */
+	uiThemeMode?: "auto" | "light" | "dark";
+	/** 是否启用自定义实验室图片保存目录 */
+	imageSaveFolderEnabled?: boolean;
+	/** 实验室生成图片保存目录 */
+	imageSaveFolder?: string;
 
 	// ===== 云存储设置 =====
 	/** 云存储配置 */
@@ -126,13 +137,13 @@ interface SettingsData {
 // 云存储设置类型
 export interface CloudStorageSettings {
 	enabled: boolean;
-	provider: 'qiniu' | 'local';
+	provider: "qiniu" | "local";
 	qiniu: {
 		accessKey: string;
 		secretKey: string;
 		bucket: string;
 		domain: string;
-		region: 'z0' | 'z1' | 'z2' | 'na0' | 'as0';
+		region: "z0" | "z1" | "z2" | "na0" | "as0";
 	};
 }
 
@@ -147,21 +158,21 @@ interface DistributionConfig {
 export class NMPSettings implements SettingsData {
 	// 单例实例
 	private static instance: NMPSettings;
-	// interface SettingsData  
-	defaultStyle: string = 'wabi-sabi';
-	defaultHighlight: string = '默认';
+	// interface SettingsData
+	defaultStyle: string = "mweb-default";
+	defaultHighlight: string = "默认";
 	showStyleUI: boolean = true;
 	linkDescriptionMode: LinkDescriptionMode = LinkDescriptionMode.Raw;
-	embedStyle: string = 'quote';
+	embedStyle: string = "quote";
 	lineNumber: boolean = true;
 	enableWeixinCodeFormat: boolean = false;
-	authKey: string = '';
+	authKey: string = "";
 	useCustomCss: boolean = false;
-	wxInfo: { name: string, appid: string, secret: string }[] = [];
-	math: string = 'latex';
+	wxInfo: { name: string; appid: string; secret: string }[] = [];
+	math: string = "latex";
 	useTemplate: boolean = false;
-	defaultTemplate: string = 'default';
-	themeColor: string = '#7852ee';
+	defaultTemplate: string = "default";
+	themeColor: string = "#7852ee";
 	enableThemeColor: boolean = false;
 	distributionConfig: DistributionConfig | null = null;
 	enableHeadingNumber: boolean = true;
@@ -171,35 +182,40 @@ export class NMPSettings implements SettingsData {
 	lastSelectedTemplate: string = "";
 	expireat: Date | null = null;
 	pluginsConfig: Record<string, Record<string, any>> = {};
-	personalInfo: SettingsData['personalInfo'] = {
-		name: '',
+	enableDefaultAuthorProfile: boolean = false;
+	defaultAuthorName: string = "";
+	defaultAuthorImageData: string = "";
+	personalInfo: SettingsData["personalInfo"] = {
+		name: "",
 		avatar: undefined,
-		bio: '',
-		email: '',
-		website: '',
-		socialLinks: undefined
+		bio: "",
+		email: "",
+		website: "",
+		socialLinks: undefined,
 	};
-	aiPromptTemplate: string = '';
-	aiModel: string = 'claude-3-5-haiku-latest';
+	aiPromptTemplate: string = "";
+	aiModel: string = "claude-3-5-haiku-latest";
 	scaleCodeBlockInImage: boolean = true;
 	hideFirstHeading: boolean = false;
 	showCoverInArticle: boolean = true;
-	toolbarPosition: 'left' | 'right' = 'right';
+	toolbarPosition: "left" | "right" = "left";
+	uiThemeMode: "auto" | "light" | "dark" = "auto";
+	imageSaveFolderEnabled: boolean = true;
+	imageSaveFolder: string = "zepublish-images";
 	cloudStorage: CloudStorageSettings = {
 		enabled: false,
-		provider: 'local',
+		provider: "local",
 		qiniu: {
-			accessKey: '',
-			secretKey: '',
-			bucket: '',
-			domain: '',
-			region: 'z0'
-		}
+			accessKey: "",
+			secretKey: "",
+			bucket: "",
+			domain: "",
+			region: "z0",
+		},
 	};
 
 	// 私有构造函数 - 所有默认值已通过属性初始化
-	private constructor() {
-	}
+	private constructor() {}
 
 	// 获取单例实例
 	public static getInstance(): NMPSettings {
@@ -223,8 +239,8 @@ export class NMPSettings implements SettingsData {
 
 	// 重置样式和高亮设置
 	resetStyelAndHighlight(): void {
-		this.defaultStyle = 'wabi-sabi';
-		this.defaultHighlight = '默认';
+		this.defaultStyle = "mweb-default";
+		this.defaultHighlight = "默认";
 	}
 
 	// 加载设置（改为实例方法）
@@ -251,7 +267,7 @@ export class NMPSettings implements SettingsData {
 		const settingsObj: Record<string, unknown> = {};
 		Object.entries(this).forEach(([key, value]) => {
 			// 排除某些不需要导出的属性
-			if (!['instance', 'expireat'].includes(key)) {
+			if (!["instance", "expireat"].includes(key)) {
 				settingsObj[key] = value;
 			}
 		});
@@ -265,7 +281,7 @@ export class NMPSettings implements SettingsData {
 			if (res.status === 200) {
 				this.expireat = new Date(res.json.expireat);
 			}
-		})
+		});
 	}
 
 	isAuthKeyVaild() {

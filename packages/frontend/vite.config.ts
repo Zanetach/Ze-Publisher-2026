@@ -32,6 +32,14 @@ export default defineConfig(({ mode }) => {
 		resolve: {
 			alias: {
 				"@": path.resolve(__dirname, "./src"),
+				"@ze-publisher/shared": path.resolve(
+					__dirname,
+					"../shared/index.ts",
+				),
+				"@ze-publisher/shared/": path.resolve(
+					__dirname,
+					"../shared/",
+				),
 			},
 		},
 
@@ -62,7 +70,7 @@ export default defineConfig(({ mode }) => {
 		// Optimizations for better HMR
 		optimizeDeps: {
 			include: ['react', 'react-dom', 'react/jsx-runtime'],
-			exclude: ['@lovpen/obsidian']
+			exclude: ['@ze-publisher/obsidian']
 		},
 
 		build: {
@@ -70,8 +78,8 @@ export default defineConfig(({ mode }) => {
 			emptyOutDir: true,
 			lib: {
 				entry: 'src/main.tsx',
-				name: 'LovpenReact',
-				fileName: 'lovpen-react',
+				name: 'ZePublishReact',
+				fileName: 'zepublish-react',
 				formats: ['iife']
 			},
 			rollupOptions: {

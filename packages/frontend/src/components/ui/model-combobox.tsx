@@ -57,16 +57,21 @@ export function ModelCombobox({
 					aria-expanded={open}
 					className="w-full h-10 justify-between font-normal"
 				>
-					<span className="truncate">
+					<span className="min-w-0 flex-1 truncate text-left">
 						{selectedModel ? selectedModel.name : placeholder}
 					</span>
 					<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 				</Button>
 			</PopoverTrigger>
-			<PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+			<PopoverContent
+				align="start"
+				side="bottom"
+				boundToToolbarContent={true}
+				className="w-[var(--radix-popover-trigger-width)] max-w-[var(--radix-popover-trigger-width)] p-0"
+			>
 				<Command>
 					<CommandInput placeholder="搜索模型..." />
-					<CommandList className="max-h-60">
+					<CommandList className="max-h-64">
 						<CommandEmpty>未找到模型</CommandEmpty>
 						{Object.entries(groupedModels).map(([vendor, vendorModels]) => (
 							<CommandGroup key={vendor} heading={vendor || undefined}>
@@ -85,7 +90,9 @@ export function ModelCombobox({
 												value === model.id ? "opacity-100" : "opacity-0"
 											)}
 										/>
-										<span className="truncate">{model.name}</span>
+										<span className="min-w-0 flex-1 truncate whitespace-nowrap">
+											{model.name}
+										</span>
 									</CommandItem>
 								))}
 							</CommandGroup>

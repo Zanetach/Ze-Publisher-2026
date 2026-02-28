@@ -3,11 +3,17 @@ import {useAtom} from 'jotai';
 import {Button} from '../ui/button';
 import {AvatarConfig, ViteReactSettings} from '../../types';
 import {logger} from '../../../../shared/src/logger';
-import {AIAnalysisSplitButton, AIStyle} from '../ui/ai-analysis-split-button';
+import {AIAnalysisSplitButton, AIStyle, AI_STYLES} from '../ui/ai-analysis-split-button';
 import {CustomPromptModal} from '../ui/custom-prompt-modal';
 import {analyzeContentWithAI} from '../../services/aiService';
 import {articleInfoAtom} from '../../store/atoms';
 import {AvatarUpload} from '../ui/AvatarUpload';
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+} from '../ui/select';
 
 interface ArticleInfoProps {
 	settings: ViteReactSettings;
@@ -36,7 +42,10 @@ const getDefaultAuthor = (settings: ViteReactSettings): string => {
 	if (settings.personalInfo?.name && settings.personalInfo.name.trim() !== '') {
 		return settings.personalInfo.name.trim();
 	}
-	return '南川同学'; // 最终默认值
+	if (settings.enableDefaultAuthorProfile && settings.defaultAuthorName?.trim()) {
+		return settings.defaultAuthorName.trim();
+	}
+	return '';
 };
 
 const getDefaultArticleInfo = (): ArticleInfoData => ({
@@ -62,7 +71,9 @@ export const ArticleInfo: React.FC<ArticleInfoProps> = ({
 														}) => {
 	const [isAIGenerating, setIsAIGenerating] = useState(false);
 	const [isCustomPromptModalOpen, setIsCustomPromptModalOpen] = useState(false);
+	const [selectedAIStyleId, setSelectedAIStyleId] = useState<string>(AI_STYLES[0].id);
 	const [articleInfo, setArticleInfo] = useAtom(articleInfoAtom);
+	const selectedAIStyle = AI_STYLES.find((style) => style.id === selectedAIStyleId) || AI_STYLES[0];
 
 	// 当文章信息变化时通知父组件
 	useEffect(() => {
@@ -98,6 +109,10 @@ export const ArticleInfo: React.FC<ArticleInfoProps> = ({
 		}
 		if (provider === 'openrouter' && (!settings.openRouterApiKey || settings.openRouterApiKey.trim() === '')) {
 			alert('请先在设置页面配置OpenRouter API密钥才能使用AI分析功能');
+			return;
+		}
+		if (provider === 'gemini' && (!settings.geminiApiKey || settings.geminiApiKey.trim() === '')) {
+			alert('请先在设置页面配置Gemini API密钥才能使用AI分析功能');
 			return;
 		}
 
@@ -208,8 +223,35 @@ export const ArticleInfo: React.FC<ArticleInfoProps> = ({
 
 	return (
 		<div className="w-full space-y-6">
-			<div className="flex justify-end">
-				<div className="flex space-x-2">
+			<div className="space-y-2">
+				<div className="flex items-center gap-2 rounded-xl border border-[#D1D5DB] bg-[#F8FAFC] px-3 py-2">
+					<span className="shrink-0 text-xs font-medium text-[#64748B]">AI分析</span>
+					<Select
+						value={selectedAIStyleId}
+						onValueChange={setSelectedAIStyleId}
+					>
+						<SelectTrigger
+							className="h-8 min-w-0 flex-1 rounded-lg border-[#CBD5E1] bg-white text-[#111827] focus-visible:ring-[#64748B]/30"
+							title="选择 AI 分析"
+						>
+							<span className="flex items-center gap-2 truncate">
+								<span>{selectedAIStyle.icon}</span>
+								<span className="truncate">{selectedAIStyle.name}</span>
+							</span>
+						</SelectTrigger>
+						<SelectContent className="z-[1200] min-w-[220px] rounded-xl border border-[#D1D5DB] bg-white shadow-lg">
+							{AI_STYLES.map((style) => (
+								<SelectItem
+									key={style.id}
+									value={style.id}
+									className="text-[#111827]"
+								>
+									<span>{style.icon}</span>
+									<span>{style.name}</span>
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
 					<AIAnalysisSplitButton
 						isGenerating={isAIGenerating}
 						isDisabled={(() => {
@@ -223,17 +265,29 @@ export const ArticleInfo: React.FC<ArticleInfoProps> = ({
 							if (provider === 'zenmux') {
 								return !settings.zenmuxApiKey?.trim() || !settings.zenmuxModel?.trim();
 							}
+							if (provider === 'gemini') {
+								return !settings.geminiApiKey?.trim() || !settings.geminiModel?.trim();
+							}
 							return true;
 						})()}
 						onAnalyze={handleAIAnalyze}
-						onCustomize={() => setIsCustomPromptModalOpen(true)}
-						onOpenSettings={onOpenAISettings}
+						currentStyle={selectedAIStyle}
 					/>
+				</div>
+				<div className="grid grid-cols-3 gap-2">
+					<Button
+						onClick={() => setIsCustomPromptModalOpen(true)}
+						size="sm"
+						variant="outline"
+						className="w-full text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6] border-[#D1D5DB] text-sm px-2 py-2 rounded-xl font-medium transition-all"
+					>
+						自定义
+					</Button>
 					<Button
 						onClick={handlePrefillAll}
 						size="sm"
 						variant="outline"
-						className="text-[#87867F] hover:text-[#181818] hover:bg-[#F0EEE6] border-[#E8E6DC] text-sm px-3 py-2 rounded-xl font-medium transition-all"
+						className="w-full text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6] border-[#D1D5DB] text-sm px-2 py-2 rounded-xl font-medium transition-all"
 					>
 						预填
 					</Button>
@@ -241,7 +295,7 @@ export const ArticleInfo: React.FC<ArticleInfoProps> = ({
 						onClick={handleClearAll}
 						size="sm"
 						variant="outline"
-						className="text-[#87867F] hover:text-[#181818] hover:bg-[#F0EEE6] border-[#E8E6DC] text-sm px-3 py-2 rounded-xl font-medium transition-all"
+						className="w-full text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6] border-[#D1D5DB] text-sm px-2 py-2 rounded-xl font-medium transition-all"
 					>
 						清空
 					</Button>
@@ -252,7 +306,7 @@ export const ArticleInfo: React.FC<ArticleInfoProps> = ({
 				{/* 作者 */}
 				<div className="sm:col-span-2">
 					<div className="flex items-center justify-between mb-2">
-						<label className="text-sm font-medium text-[#181818]">
+						<label className="text-sm font-medium text-[#111827]">
 							作者
 						</label>
 						{settings.personalInfo?.name && settings.personalInfo.name.trim() !== '' &&
@@ -264,13 +318,13 @@ export const ArticleInfo: React.FC<ArticleInfoProps> = ({
 									author: settings.personalInfo!.name,
 									authorAvatar: settings.personalInfo!.avatar
 								}))}
-								className="text-xs text-[#D97757] hover:text-[#c5654a] transition-colors"
+								className="text-xs text-[#4B5563] hover:text-[#374151] transition-colors"
 							>
 								使用预设
 							</button>
 						)}
 					</div>
-					<div className="flex items-center gap-3">
+						<div className="flex items-center gap-3">
 						{/* 头像 - 可点击上传 */}
 						<AvatarUpload
 							currentConfig={articleInfo.authorAvatar}
@@ -278,27 +332,27 @@ export const ArticleInfo: React.FC<ArticleInfoProps> = ({
 							onConfigChange={(config) => setArticleInfo(prev => ({ ...prev, authorAvatar: config }))}
 							size="xs"
 						/>
-						<input
-							type="text"
-							value={articleInfo.author}
-							onChange={(e) => handleInputChange('author', e.target.value)}
-							className="flex-1 px-3 py-3 border border-[#E8E6DC] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] focus:border-[#D97757] text-sm transition-all"
-							placeholder="输入作者名称"
-						/>
+							<input
+								type="text"
+								value={articleInfo.author}
+								onChange={(e) => handleInputChange('author', e.target.value)}
+								className="h-10 flex-1 px-3 py-0 border border-[#E5E7EB] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B5563] focus:border-[#4B5563] text-sm transition-all"
+								placeholder="输入作者名称"
+							/>
+						</div>
 					</div>
-				</div>
 
 				{/* 发布日期 */}
 				<div className="sm:col-span-2">
 					<div className="flex items-center justify-between mb-2">
-						<label className="text-sm font-medium text-[#181818]">
+						<label className="text-sm font-medium text-[#111827]">
 							发布日期
 						</label>
 						{articleInfo.publishDate !== new Date().toISOString().split('T')[0] && (
 							<button
 								type="button"
 								onClick={() => handleInputChange('publishDate', new Date().toISOString().split('T')[0])}
-								className="text-xs text-[#D97757] hover:text-[#c5654a] transition-colors"
+								className="text-xs text-[#4B5563] hover:text-[#374151] transition-colors"
 							>
 								使用今天
 							</button>
@@ -308,21 +362,21 @@ export const ArticleInfo: React.FC<ArticleInfoProps> = ({
 						type="date"
 						value={articleInfo.publishDate}
 						onChange={(e) => handleInputChange('publishDate', e.target.value)}
-						className="w-full px-3 py-3 border border-[#E8E6DC] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] focus:border-[#D97757] text-sm transition-all"
+						className="w-full px-3 py-3 border border-[#E5E7EB] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B5563] focus:border-[#4B5563] text-sm transition-all"
 					/>
 				</div>
 
 				{/* 文章标题 */}
 				<div className="sm:col-span-2">
 					<div className="flex items-center justify-between mb-2">
-						<label className="text-sm font-medium text-[#181818]">
+						<label className="text-sm font-medium text-[#111827]">
 							文章标题
 						</label>
 						{getCurrentFileName() && articleInfo.articleTitle !== getCurrentFileName() && (
 							<button
 								type="button"
 								onClick={() => handleInputChange('articleTitle', getCurrentFileName())}
-								className="text-xs text-[#D97757] hover:text-[#c5654a] transition-colors"
+								className="text-xs text-[#4B5563] hover:text-[#374151] transition-colors"
 							>
 								使用文件名: {getCurrentFileName()}
 							</button>
@@ -332,95 +386,95 @@ export const ArticleInfo: React.FC<ArticleInfoProps> = ({
 						type="text"
 						value={articleInfo.articleTitle}
 						onChange={(e) => handleInputChange('articleTitle', e.target.value)}
-						className="w-full px-3 py-3 border border-[#E8E6DC] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] focus:border-[#D97757] text-sm transition-all"
+						className="w-full px-3 py-3 border border-[#E5E7EB] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B5563] focus:border-[#4B5563] text-sm transition-all"
 						placeholder="输入文章标题"
 					/>
 				</div>
 
 				{/* 副标题 */}
 				<div className="sm:col-span-2">
-					<label className="block text-sm font-medium text-[#181818] mb-2">
+					<label className="block text-sm font-medium text-[#111827] mb-2">
 						副标题
 					</label>
 					<input
 						type="text"
 						value={articleInfo.articleSubtitle}
 						onChange={(e) => handleInputChange('articleSubtitle', e.target.value)}
-						className="w-full px-3 py-3 border border-[#E8E6DC] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] focus:border-[#D97757] text-sm transition-all"
+						className="w-full px-3 py-3 border border-[#E5E7EB] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B5563] focus:border-[#4B5563] text-sm transition-all"
 						placeholder="输入副标题"
 					/>
 				</div>
 
 				{/* 期数 */}
 				<div>
-					<label className="block text-sm font-medium text-[#181818] mb-2">
+					<label className="block text-sm font-medium text-[#111827] mb-2">
 						期数
 					</label>
 					<input
 						type="text"
 						value={articleInfo.episodeNum}
 						onChange={(e) => handleInputChange('episodeNum', e.target.value)}
-						className="w-full px-3 py-3 border border-[#E8E6DC] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] focus:border-[#D97757] text-sm transition-all"
+						className="w-full px-3 py-3 border border-[#E5E7EB] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B5563] focus:border-[#4B5563] text-sm transition-all"
 						placeholder="如：第 51 期"
 					/>
 				</div>
 
 				{/* 系列名称 */}
 				<div>
-					<label className="block text-sm font-medium text-[#181818] mb-2">
+					<label className="block text-sm font-medium text-[#111827] mb-2">
 						系列名称
 					</label>
 					<input
 						type="text"
 						value={articleInfo.seriesName}
 						onChange={(e) => handleInputChange('seriesName', e.target.value)}
-						className="w-full px-3 py-3 border border-[#E8E6DC] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] focus:border-[#D97757] text-sm transition-all"
+						className="w-full px-3 py-3 border border-[#E5E7EB] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B5563] focus:border-[#4B5563] text-sm transition-all"
 						placeholder="如：人文与科技"
 					/>
 				</div>
 
 				{/* 摘要 */}
 				<div className="sm:col-span-2">
-					<label className="block text-sm font-medium text-[#181818] mb-2">
+					<label className="block text-sm font-medium text-[#111827] mb-2">
 						摘要
 					</label>
 					<textarea
 						value={articleInfo.summary}
 						onChange={(e) => handleInputChange('summary', e.target.value)}
-						className="w-full px-3 py-3 border border-[#E8E6DC] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] focus:border-[#D97757] h-24 resize-none text-sm transition-all"
+						className="w-full px-3 py-3 border border-[#E5E7EB] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B5563] focus:border-[#4B5563] h-24 resize-none text-sm transition-all"
 						placeholder="输入文章摘要，简要概括文章主要内容"
 					/>
 				</div>
 
 				{/* 推荐语 */}
 				<div className="sm:col-span-2">
-					<label className="block text-sm font-medium text-[#181818] mb-2">
+					<label className="block text-sm font-medium text-[#111827] mb-2">
 						推荐语
 					</label>
 					<textarea
 						value={articleInfo.recommendation}
 						onChange={(e) => handleInputChange('recommendation', e.target.value)}
-						className="w-full px-3 py-3 border border-[#E8E6DC] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] focus:border-[#D97757] h-24 resize-none text-sm transition-all"
+						className="w-full px-3 py-3 border border-[#E5E7EB] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B5563] focus:border-[#4B5563] h-24 resize-none text-sm transition-all"
 						placeholder="输入推荐语，吸引读者阅读的亮点或价值"
 					/>
 				</div>
 
 				{/* 标签 */}
 				<div className="sm:col-span-2">
-					<label className="block text-sm font-medium text-[#181818] mb-2">
+					<label className="block text-sm font-medium text-[#111827] mb-2">
 						标签
 					</label>
 					<textarea
 						value={articleInfo.tags.join(', ')}
 						onChange={(e) => handleTagsChange(e.target.value)}
-						className="w-full px-3 py-3 border border-[#E8E6DC] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] focus:border-[#D97757] h-20 resize-none text-sm transition-all"
+						className="w-full px-3 py-3 border border-[#E5E7EB] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B5563] focus:border-[#4B5563] h-20 resize-none text-sm transition-all"
 						placeholder="输入标签，支持逗号、换行、分号分隔"
 					/>
 					<div className="mt-3 flex flex-wrap gap-2">
 						{articleInfo.tags.map((tag, index) => (
 							<span
 								key={index}
-								className="inline-block bg-[#F7F4EC] text-[#181818] text-sm px-3 py-1 rounded-full border border-[#E8E6DC]"
+								className="inline-block bg-[#F7F4EC] text-[#111827] text-sm px-3 py-1 rounded-full border border-[#E5E7EB]"
 							>
 								{tag}
 							</span>

@@ -70,15 +70,47 @@ export class ImageGenerationService {
 
 	// 基于文章内容生成封面提示词
 	async generateCoverPrompt(articleHTML: string, style: string, settings?: ViteReactSettings): Promise<CoverPromptResult> {
-		if (!settings?.zenmuxApiKey) {
-			return {success: false, error: '请先配置 ZenMux API 密钥'};
+		const provider = settings?.aiProvider || 'claude';
+		const hasProviderApi = provider === 'claude'
+			? !!settings?.authKey?.trim()
+			: provider === 'openrouter'
+				? !!settings?.openRouterApiKey?.trim()
+				: provider === 'zenmux'
+					? !!settings?.zenmuxApiKey?.trim()
+					: provider === 'gemini'
+						? !!settings?.geminiApiKey?.trim()
+						: false;
+
+		if (!hasProviderApi) {
+			return {success: false, error: '请先在 AI 设置中配置当前平台 API 密钥'};
+		}
+
+		// 非 ZenMux 供应商时，使用本地规则兜底生成提示词，避免功能被限制
+		if (provider !== 'zenmux') {
+			const parser = new DOMParser();
+			const doc = parser.parseFromString(articleHTML, 'text/html');
+			const textContent = (doc.body.textContent || '').trim();
+			const contentSnippet = textContent.substring(0, 120).replace(/\s+/g, ' ');
+			const styleDescMap: Record<string, string> = {
+				realistic: 'photorealistic, 8k, highly detailed',
+				illustration: 'digital illustration, vibrant colors, artistic',
+				minimalist: 'minimalist, clean, modern design, simple composition',
+				abstract: 'abstract art, geometric shapes, creative',
+				vintage: 'vintage, retro, film grain, nostalgic'
+			};
+			const styleDesc = styleDescMap[style] || 'best quality, masterpiece';
+			return {
+				success: true,
+				positivePrompt: `Article cover image, ${contentSnippet || 'technology and productivity theme'}, ${styleDesc}, best quality, masterpiece, ultra high res`,
+				negativePrompt: 'nsfw, lowres, bad anatomy, text, watermark, blurry'
+			};
 		}
 
 		if (!settings?.zenmuxModel?.trim()) {
 			return {success: false, error: '请先在 AI 设置中选择模型'};
 		}
 
-		if (!window.lovpenReactAPI?.requestUrl) {
+		if (!window.zepublishReactAPI?.requestUrl) {
 			return {success: false, error: '此功能仅在 Obsidian 环境中可用'};
 		}
 
@@ -133,7 +165,7 @@ Guidelines:
 				model: settings.zenmuxModel
 			});
 
-			const requestUrl = window.lovpenReactAPI.requestUrl;
+			const requestUrl = window.zepublishReactAPI.requestUrl;
 			const response = await requestUrl({
 				url: 'https://zenmux.ai/api/v1/chat/completions',
 				method: 'POST',
@@ -199,12 +231,12 @@ Guidelines:
 			return {success: false, error: '请先配置 ZenMux API 密钥'};
 		}
 
-		if (!window.lovpenReactAPI?.requestUrl) {
+		if (!window.zepublishReactAPI?.requestUrl) {
 			return {success: false, error: '此功能仅在 Obsidian 环境中可用'};
 		}
 
 		try {
-			const requestUrl = window.lovpenReactAPI.requestUrl;
+			const requestUrl = window.zepublishReactAPI.requestUrl;
 
 			// Nano Banana Pro 使用 VertexAI 格式
 			if (useNanoBananaPro) {
@@ -282,7 +314,7 @@ Guidelines:
 		prompt: string,
 		negativePrompt: string | undefined,
 		settings: ViteReactSettings,
-		requestUrl: typeof window.lovpenReactAPI.requestUrl,
+		requestUrl: typeof window.zepublishReactAPI.requestUrl,
 		config?: {temperature?: number; topP?: number; seed?: number; aspectRatio?: string}
 	): Promise<ImageGenerationResult> {
 		const negPrompt = negativePrompt || 'nsfw, lowres, bad anatomy, text, watermark, blurry';

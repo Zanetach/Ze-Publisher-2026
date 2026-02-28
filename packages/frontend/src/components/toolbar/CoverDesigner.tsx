@@ -11,8 +11,21 @@ import {ViteReactSettings, UploadedImage} from '../../types';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '../ui/select';
 
 // 本地存储键名（与 Toolbar 共用）
-const UPLOADED_IMAGES_STORAGE_KEY = 'lovpen-uploaded-images';
-const AI_GENERATION_STATE_KEY = 'lovpen-ai-generation-state';
+const UPLOADED_IMAGES_STORAGE_KEY = 'zepublish-uploaded-images';
+const AI_GENERATION_STATE_KEY = 'zepublish-ai-generation-state';
+const IMAGE_EXTENSIONS = new Set([
+	'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg', 'avif', 'heic', 'heif',
+]);
+
+const getObsidianApp = (): any => {
+	const current = (window as any)?.app;
+	if (current) return current;
+	const parentApp = (window as any)?.parent?.app;
+	if (parentApp) return parentApp;
+	const topApp = (window as any)?.top?.app;
+	if (topApp) return topApp;
+	return null;
+};
 
 // AI 图片生成模型
 const AI_IMAGE_MODELS = [
@@ -81,6 +94,7 @@ interface CoverDesignerProps {
 	onDownloadCovers: (covers: CoverData[]) => void;
 	onClose: () => void;
 	settings?: ViteReactSettings;
+	isUIDark?: boolean;
 	onOpenAISettings?: () => void;
 }
 
@@ -90,6 +104,7 @@ export const CoverDesigner: React.FC<CoverDesignerProps> = ({
 																onDownloadCovers,
 																onClose,
 																settings,
+																isUIDark = false,
 																onOpenAISettings
 															}) => {
 	// 封面预览状态
@@ -133,10 +148,10 @@ export const CoverDesigner: React.FC<CoverDesignerProps> = ({
 			setUploadedImages(getUploadedImages());
 		};
 		window.addEventListener('storage', handleStorageChange);
-		window.addEventListener('lovpen-images-updated', handleStorageChange);
+		window.addEventListener('zepublish-images-updated', handleStorageChange);
 		return () => {
 			window.removeEventListener('storage', handleStorageChange);
-			window.removeEventListener('lovpen-images-updated', handleStorageChange);
+			window.removeEventListener('zepublish-images-updated', handleStorageChange);
 		};
 	}, []);
 
@@ -234,6 +249,200 @@ export const CoverDesigner: React.FC<CoverDesignerProps> = ({
 		});
 	}, []);
 
+	// 从当前笔记 Markdown 提取全部图片（优先来源）
+	const extractImagesFromActiveNote = useCallback(async (): Promise<ExtractedImage[]> => {
+		try {
+			const app = getObsidianApp();
+			const activeFile = app?.workspace?.getActiveFile?.();
+			if (!app || !activeFile) {
+				logger.warn('[CoverDesigner] 无法获取活动笔记', {
+					hasApp: !!app,
+					hasActiveFile: !!activeFile,
+				});
+				return [];
+			}
+
+			const content: string = await app.vault.read(activeFile);
+			const extracted: ExtractedImage[] = [];
+			const seenSrc = new Set<string>();
+
+			const addImage = (src: string, alt: string) => {
+				const normalized = (src || '').trim();
+				if (!normalized || seenSrc.has(normalized)) {
+					return;
+				}
+				seenSrc.add(normalized);
+				extracted.push({
+					src: normalized,
+					alt: alt || `图片 ${extracted.length + 1}`,
+				});
+			};
+
+			const normalizeMarkdownLink = (raw: string): string => {
+				let value = (raw || '').trim();
+				if (value.startsWith('<') && value.endsWith('>')) {
+					value = value.slice(1, -1);
+				}
+				return value;
+			};
+
+			const resolveToImageUrl = (rawPath: string): string => {
+				const value = normalizeMarkdownLink(rawPath);
+				if (!value) return '';
+
+				// 直接可用 URL
+				if (/^(https?:|data:|blob:|app:|file:|obsidian:)/i.test(value)) {
+					return value;
+				}
+
+				// 去掉 query/hash 和 Obsidian 别名/尺寸段后再解析
+				const clean = value.split('|')[0].split('#')[0].split('?')[0];
+				const linkedFile = app.metadataCache.getFirstLinkpathDest(
+					clean,
+					activeFile.path,
+				);
+
+				if (linkedFile) {
+					const extension = (linkedFile.extension || '').toLowerCase();
+					if (IMAGE_EXTENSIONS.has(extension)) {
+						return app.vault.getResourcePath(linkedFile);
+					}
+				}
+
+				return '';
+			};
+
+			// 0) 优先用 metadata cache 的 embeds，覆盖 Obsidian 各类嵌入写法
+			const fileCache = app.metadataCache.getFileCache(activeFile);
+			const embeds = fileCache?.embeds || [];
+			for (const embed of embeds) {
+				const rawLink = (embed?.link || '').trim();
+				if (!rawLink) continue;
+				const resolved = resolveToImageUrl(rawLink);
+				if (resolved) {
+					addImage(resolved, rawLink);
+				}
+			}
+
+			// 1) 标准 Markdown 图片: ![alt](url "title")
+			const mdImageRegex = /!\[([^\]]*)\]\(([^)\n]+)\)/g;
+			for (const match of content.matchAll(mdImageRegex)) {
+				const alt = (match[1] || '').trim();
+				let rawTarget = (match[2] || '').trim();
+				// 去掉可选 title：url "title"
+				rawTarget = rawTarget.replace(/\s+["'][^"']*["']\s*$/, '');
+				const resolved = resolveToImageUrl(rawTarget);
+				if (resolved) {
+					addImage(resolved, alt);
+				}
+			}
+
+			// 2) Obsidian 嵌入: ![[path|alias|size]]
+			const wikilinkImageRegex = /!\[\[([^\]]+)\]\]/g;
+			for (const match of content.matchAll(wikilinkImageRegex)) {
+				const raw = (match[1] || '').trim();
+				if (!raw) continue;
+
+				const parts = raw.split('|').map((p) => p.trim()).filter(Boolean);
+				const rawTarget = parts[0] || '';
+				const alias = parts.length > 1 ? parts[1] : '';
+				const resolved = resolveToImageUrl(rawTarget);
+				if (resolved) {
+					addImage(resolved, alias);
+				}
+			}
+
+			// 3) Markdown 内嵌 HTML: <img src="...">
+			const htmlImgRegex = /<img\b[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*>/gi;
+			for (const match of content.matchAll(htmlImgRegex)) {
+				const rawTarget = (match[1] || '').trim();
+				const resolved = resolveToImageUrl(rawTarget);
+				if (resolved) {
+					addImage(resolved, '');
+				}
+			}
+
+			logger.info('[CoverDesigner] 从当前笔记 Markdown 提取图片', {count: extracted.length});
+			return extracted;
+		} catch (error) {
+			logger.warn('[CoverDesigner] 从当前笔记提取图片失败', {error});
+			return [];
+		}
+	}, []);
+
+	// 从当前打开笔记的编辑器/预览 DOM 提取图片（点击“添加封面”时的强兜底）
+	const extractImagesFromActiveEditorDOM = useCallback(async (): Promise<ExtractedImage[]> => {
+		try {
+			const app = getObsidianApp();
+			if (!app?.workspace?.getLeavesOfType) {
+				return [];
+			}
+
+			const leaves = app.workspace.getLeavesOfType('markdown') || [];
+			const extracted: ExtractedImage[] = [];
+			const seen = new Set<string>();
+
+			const push = (src: string, alt: string) => {
+				const normalized = (src || '').trim();
+				if (!normalized || seen.has(normalized)) return;
+				seen.add(normalized);
+				extracted.push({
+					src: normalized,
+					alt: alt || `图片 ${extracted.length + 1}`,
+				});
+			};
+
+			for (const leaf of leaves) {
+				const container = leaf?.view?.containerEl as HTMLElement | undefined;
+				if (!container) continue;
+
+				const imgs = container.querySelectorAll('img');
+				imgs.forEach((img) => {
+					const src = img.getAttribute('src')
+						|| img.getAttribute('data-obsidian')
+						|| img.getAttribute('data-src')
+						|| '';
+					const alt = img.getAttribute('alt') || '';
+					if (src && /^(https?:|data:|blob:|app:|file:|obsidian:)/i.test(src)) {
+						push(src, alt);
+					}
+				});
+			}
+
+			logger.info('[CoverDesigner] 从当前编辑器 DOM 提取图片', {count: extracted.length});
+			return extracted;
+		} catch (error) {
+			logger.warn('[CoverDesigner] 从当前编辑器 DOM 提取图片失败', {error});
+			return [];
+		}
+	}, []);
+
+	// 从整个笔记库提取所有图片文件（第二来源）
+	const extractImagesFromVault = useCallback(async (): Promise<ExtractedImage[]> => {
+		try {
+			const app = getObsidianApp();
+			if (!app?.vault?.getFiles) {
+				return [];
+			}
+
+			const files = app.vault.getFiles() || [];
+			const imageFiles = files
+				.filter((file: any) => IMAGE_EXTENSIONS.has((file?.extension || '').toLowerCase()))
+				.sort((a: any, b: any) => (b?.stat?.mtime || 0) - (a?.stat?.mtime || 0));
+
+			const extracted: ExtractedImage[] = imageFiles.map((file: any) => ({
+				src: app.vault.getResourcePath(file),
+				alt: file?.basename || file?.name || '图片',
+			}));
+
+			logger.info('[CoverDesigner] 从整个笔记库提取图片', {count: extracted.length});
+			return extracted;
+		} catch (error) {
+			logger.warn('[CoverDesigner] 从整个笔记库提取图片失败', {error});
+			return [];
+		}
+	}, []);
+
 	const extractImagesFromHTML = useCallback(async (html: string): Promise<ExtractedImage[]> => {
 		logger.info('[CoverDesigner] 开始提取图片', {htmlLength: html.length});
 
@@ -265,20 +474,38 @@ export const CoverDesigner: React.FC<CoverDesignerProps> = ({
 		logger.info('[CoverDesigner] 找到HTML图片元素', {count: htmlImages.length});
 
 		const extractedImages: ExtractedImage[] = [];
+		const seenSrc = new Set<string>();
+
+		const isAllowedImageSrc = (value: string): boolean => {
+			return /^(https?:|data:|blob:|app:|file:|obsidian:)/i.test(value);
+		};
 
 		for (const img of htmlImages) {
-			let src = img.src || img.getAttribute('src') || '';
+			let src =
+				img.getAttribute('src')
+				|| img.getAttribute('data-obsidian')
+				|| img.getAttribute('lazy-obsidian')
+				|| img.getAttribute('data-src')
+				|| img.getAttribute('data-original')
+				|| '';
 
-			// 如果是空的或者无效的src，尝试其他属性
-			if (!src || src === '' || src === window.location.href) {
+			// 如果 src 依然为空，再退回到 DOM 的标准属性
+			if (!src) {
+				src = img.src || '';
+			}
+
+			// 如果是空的或者明显是页面地址，尝试备用属性
+			if (!src || src === window.location.href) {
 				const dataSrc = img.getAttribute('data-obsidian');
 				const lazySrc = img.getAttribute('lazy-obsidian');
 				src = dataSrc || lazySrc || '';
 				logger.info(`[CoverDesigner] 尝试备用属性`, {dataSrc, lazySrc, finalSrc: src});
 			}
 
+			src = src.trim();
+
 			// 处理相对路径
-			if (src && !src.startsWith('http') && !src.startsWith('data:') && !src.startsWith('blob:')) {
+			if (src && !/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(src)) {
 				const originalSrc = src;
 
 				try {
@@ -302,12 +529,17 @@ export const CoverDesigner: React.FC<CoverDesignerProps> = ({
 				src !== '' &&
 				src !== window.location.href &&
 				!src.endsWith('#') &&
-				(src.startsWith('http') || src.startsWith('data:') || src.startsWith('blob:'));
+				isAllowedImageSrc(src);
 
 			if (!isValidUrl) {
 				logger.warn('[CoverDesigner] 跳过无效图片', {src, reason: '无效的URL格式'});
 				continue;
 			}
+
+			if (seenSrc.has(src)) {
+				continue;
+			}
+			seenSrc.add(src);
 
 			// 检查是否已从DOM中获取
 			if (loadedImagesMap.has(src)) {
@@ -491,20 +723,40 @@ export const CoverDesigner: React.FC<CoverDesignerProps> = ({
 		loadPersistedData();
 	}, [loadCoverData]);
 
-	useEffect(() => {
-		const extractImages = async () => {
-			try {
-				const images = await extractImagesFromHTML(articleHTML);
-				setSelectedImages(images);
-				logger.info('[CoverDesigner] 从文章中提取图片', {count: images.length});
-			} catch (error) {
-				logger.error('[CoverDesigner] 提取图片失败', {error});
-				setSelectedImages([]);
-			}
-		};
+	const refreshSelectableImages = useCallback(async () => {
+		try {
+			const noteImages = await extractImagesFromActiveNote();
+			const domImages = await extractImagesFromActiveEditorDOM();
+			const vaultImages = await extractImagesFromVault();
+			const htmlImages = await extractImagesFromHTML(articleHTML);
 
-		extractImages();
-	}, [articleHTML, extractImagesFromHTML]);
+			// 顺序：当前笔记 Markdown -> 当前编辑器 DOM -> 整个库 -> HTML 回退
+			const merged: ExtractedImage[] = [];
+			const seen = new Set<string>();
+			for (const img of [...noteImages, ...domImages, ...vaultImages, ...htmlImages]) {
+				const src = (img.src || '').trim();
+				if (!src || seen.has(src)) continue;
+				seen.add(src);
+				merged.push(img);
+			}
+
+			setSelectedImages(merged);
+			logger.info('[CoverDesigner] 文中图片聚合提取完成', {
+				noteCount: noteImages.length,
+				domCount: domImages.length,
+				vaultCount: vaultImages.length,
+				htmlCount: htmlImages.length,
+				mergedCount: merged.length,
+			});
+		} catch (error) {
+			logger.error('[CoverDesigner] 提取图片失败', {error});
+			setSelectedImages([]);
+		}
+	}, [articleHTML, extractImagesFromHTML, extractImagesFromActiveNote, extractImagesFromActiveEditorDOM, extractImagesFromVault]);
+
+	useEffect(() => {
+		refreshSelectableImages();
+	}, [refreshSelectableImages]);
 
 
 	// 通用的保存封面持久化数据函数
@@ -592,8 +844,9 @@ export const CoverDesigner: React.FC<CoverDesignerProps> = ({
 	}, [getDimensions, setCoverPreview, saveCoverData]);
 
 	// 处理封面卡片点击
-	const handleCoverCardClick = (coverNumber: 1 | 2) => {
+	const handleCoverCardClick = async (coverNumber: 1 | 2) => {
 		logger.info(`[CoverDesigner] 封面卡片点击事件触发: 封面${coverNumber}`);
+		await refreshSelectableImages();
 		console.log(`[CoverDesigner] 点击封面${coverNumber}，设置状态:`, {
 			showImageSelection: true,
 			selectedCoverNumber: coverNumber
@@ -603,11 +856,9 @@ export const CoverDesigner: React.FC<CoverDesignerProps> = ({
 	};
 
 	// 处理图片选择
-	const handleImageSelect = async (imageUrl: string, source: CoverImageSource, originalImageUrl?: string, originalFileName?: string) => {
-		if (!selectedCoverNumber) return;
-
+	const handleImageSelect = async (coverNumber: 1 | 2, imageUrl: string, source: CoverImageSource, originalImageUrl?: string, originalFileName?: string) => {
 		try {
-			await createCover(imageUrl, source, selectedCoverNumber, originalImageUrl, originalFileName);
+			await createCover(imageUrl, source, coverNumber, originalImageUrl, originalFileName);
 			setShowImageSelection(false);
 			setSelectedCoverNumber(null);
 		} catch (error) {
@@ -664,8 +915,16 @@ export const CoverDesigner: React.FC<CoverDesignerProps> = ({
 		logger.debug('[CoverDesigner] 清空全部封面持久化数据');
 	}, [clearCoverPreview]);
 
-	// AI 生成是否可用
-	const isAIAvailable = settings?.aiProvider === 'zenmux' && !!settings?.zenmuxApiKey?.trim();
+	// AI 生成是否可用：当前供应商配置了对应 API 即可
+	const currentProvider = settings?.aiProvider || 'claude';
+	const isAIAvailable = (() => {
+		if (!settings) return false;
+		if (currentProvider === 'claude') return !!settings.authKey?.trim();
+		if (currentProvider === 'openrouter') return !!settings.openRouterApiKey?.trim();
+		if (currentProvider === 'zenmux') return !!settings.zenmuxApiKey?.trim();
+		if (currentProvider === 'gemini') return !!settings.geminiApiKey?.trim();
+		return false;
+	})();
 
 	// AI 一键生成封面（整合 prompt 生成 + 图片生成，支持批量）
 	const handleOneClickGenerate = useCallback(async () => {
@@ -757,7 +1016,9 @@ export const CoverDesigner: React.FC<CoverDesignerProps> = ({
 	return (
 		<div className="@container space-y-4 relative">
 			{/* 卡片1: 封面设计 */}
-			<div className="bg-white rounded-xl border border-[#E8E6DC] p-4 shadow-sm space-y-3">
+			<div className={`rounded-xl border p-4 shadow-sm space-y-3 ${
+				isUIDark ? 'bg-[#222327] border-[#3A3B40]' : 'bg-white border-[#E8E6DC]'
+			}`}>
 				{/* 头部和操作按钮 */}
 				<div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
 					<h4 className="text-sm font-medium text-foreground">封面预览</h4>
@@ -814,7 +1075,9 @@ export const CoverDesigner: React.FC<CoverDesignerProps> = ({
 			</div>
 
 			{/* 卡片2: AI 智能生成区域 */}
-			<div className="bg-white rounded-xl border border-[#E8E6DC] p-4 shadow-sm">
+			<div className={`rounded-xl border p-4 shadow-sm ${
+				isUIDark ? 'bg-[#222327] border-[#3A3B40]' : 'bg-white border-[#E8E6DC]'
+			}`}>
 				<div className="flex items-center gap-2 mb-3">
 					<Sparkles className="h-4 w-4 text-primary"/>
 					<h4 className="text-sm font-serif font-medium text-foreground">AI 智能生成</h4>
@@ -822,7 +1085,7 @@ export const CoverDesigner: React.FC<CoverDesignerProps> = ({
 
 				{!isAIAvailable ? (
 					<div className="text-center py-4">
-						<p className="text-sm text-muted-foreground mb-2">需要配置 ZenMux API 才能使用 AI 生成</p>
+						<p className="text-sm text-muted-foreground mb-2">需要先配置当前 AI 平台的 API 才能使用 AI 生成</p>
 						{onOpenAISettings && (
 							<button
 								onClick={onOpenAISettings}

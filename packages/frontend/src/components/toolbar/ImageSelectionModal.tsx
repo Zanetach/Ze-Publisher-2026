@@ -14,7 +14,7 @@ import {useShadowRoot} from '../../providers/ShadowRootProvider';
 interface ImageSelectionModalProps {
 	isOpen: boolean;
 	onClose: () => void;
-	onImageSelect: (imageUrl: string, source: CoverImageSource, originalImageUrl?: string, originalFileName?: string) => void;
+	onImageSelect: (coverNumber: 1 | 2, imageUrl: string, source: CoverImageSource, originalImageUrl?: string, originalFileName?: string) => void;
 	coverNumber: 1 | 2;
 	aspectRatio: CoverAspectRatio;
 	selectedImages: ExtractedImage[];
@@ -70,9 +70,11 @@ export const ImageSelectionModal: React.FC<ImageSelectionModalProps> = ({
 
 	const handleImageSelect = (imageUrl: string, fileName?: string) => {
 		logger.info('[ImageSelectionModal] handleImageSelect', {imageUrl: imageUrl.substring(0, 80), fileName});
+		// 需求：点击图片即可选中并显示勾选，直接点击确定生效
 		setImageToProcess(imageUrl);
+		setSelectedImageUrl(imageUrl);
 		setSelectedFileName(fileName || '');
-		setShowCropModal(true);
+		setShowCropModal(false);
 	};
 
 	const handleCropComplete = (croppedUrl: string, cropArea: CropArea) => {
@@ -91,19 +93,35 @@ export const ImageSelectionModal: React.FC<ImageSelectionModalProps> = ({
 			// 传递原始图片 URL 和文件名，用于持久化恢复
 			const fileNameToPass = activeTab === 'library' ? selectedFileName : undefined;
 			logger.info('[ImageSelectionModal] handleConfirm', {
+				coverNumber,
 				activeTab,
 				selectedImageUrl: selectedImageUrl.substring(0, 80),
 				originalImageUrl: imageToProcess.substring(0, 80),
 				selectedFileName,
 				fileNameToPass
 			});
-			onImageSelect(selectedImageUrl, activeTab, imageToProcess, fileNameToPass);
+			onImageSelect(coverNumber, selectedImageUrl, activeTab, imageToProcess, fileNameToPass);
 			onClose();
 		}
 	};
 
-	// 检查 AI 生成是否可用（ZenMux 配置了密钥）
-	const isAIGenerationAvailable = settings?.aiProvider === 'zenmux' && !!settings?.zenmuxApiKey?.trim();
+	// 检查 AI 生成是否可用（当前供应商配置了对应密钥）
+	const currentProvider = settings?.aiProvider || 'claude';
+	const providerDisplayName = currentProvider === 'claude'
+		? 'Claude'
+		: currentProvider === 'openrouter'
+			? 'OpenRouter'
+			: currentProvider === 'zenmux'
+				? 'ZenMux'
+				: 'Gemini';
+	const isAIGenerationAvailable = (() => {
+		if (!settings) return false;
+		if (currentProvider === 'claude') return !!settings.authKey?.trim();
+		if (currentProvider === 'openrouter') return !!settings.openRouterApiKey?.trim();
+		if (currentProvider === 'zenmux') return !!settings.zenmuxApiKey?.trim();
+		if (currentProvider === 'gemini') return !!settings.geminiApiKey?.trim();
+		return false;
+	})();
 
 	const generateAIImage = useCallback(async () => {
 		if (!aiPrompt.trim()) return;
@@ -118,7 +136,7 @@ export const ImageSelectionModal: React.FC<ImageSelectionModalProps> = ({
 
 		try {
 			// 进度动画
-			const progressUpdates = isAIGenerationAvailable
+			const progressUpdates = isAIGenerationAvailable && currentProvider === 'zenmux'
 				? [
 					{progress: 10, message: '正在连接 ZenMux...'},
 					{progress: 30, message: '正在生成图像...'},
@@ -137,7 +155,7 @@ export const ImageSelectionModal: React.FC<ImageSelectionModalProps> = ({
 					progress: update.progress,
 					message: update.message
 				});
-				if (!isAIGenerationAvailable) {
+				if (!isAIGenerationAvailable || currentProvider !== 'zenmux') {
 					await new Promise(resolve => setTimeout(resolve, 500));
 				}
 			}
@@ -173,7 +191,7 @@ export const ImageSelectionModal: React.FC<ImageSelectionModalProps> = ({
 				message: ''
 			});
 		}
-	}, [aiPrompt, aiStyle, aspectRatio, getDimensions, coverNumber, settings, isAIGenerationAvailable]);
+	}, [aiPrompt, aiStyle, aspectRatio, getDimensions, coverNumber, settings, isAIGenerationAvailable, currentProvider]);
 
 	// 使用 Shadow DOM 感知的 portal 容器
 	const {portalContainer, isShadowDom} = useShadowRoot();
@@ -182,12 +200,12 @@ export const ImageSelectionModal: React.FC<ImageSelectionModalProps> = ({
 	const getToolbarPortalContainer = (): HTMLElement | null => {
 		if (isShadowDom && portalContainer) {
 			const rootNode = portalContainer.getRootNode() as Document | ShadowRoot;
-			return rootNode.getElementById('lovpen-toolbar-container')
-				|| rootNode.getElementById('lovpen-toolbar-content')
+			return rootNode.getElementById('zepublish-toolbar-container')
+				|| rootNode.getElementById('zepublish-toolbar-content')
 				|| null;
 		}
-		return document.getElementById('lovpen-toolbar-container')
-			|| document.getElementById('lovpen-toolbar-content');
+		return document.getElementById('zepublish-toolbar-container')
+			|| document.getElementById('zepublish-toolbar-content');
 	};
 
 	const toolbarPortalContainer = getToolbarPortalContainer();
@@ -280,7 +298,7 @@ export const ImageSelectionModal: React.FC<ImageSelectionModalProps> = ({
 
 								<TabsContent value="ai" className="flex-1 min-h-0 overflow-y-auto" data-vaul-no-drag>
 									<div className="space-y-4">
-										{/* 未配置 ZenMux 时的提示 */}
+										{/* 未配置当前 AI 平台时的提示 */}
 										{!isAIGenerationAvailable && (
 											<div className="border border-amber-200 rounded-lg p-4 bg-amber-50">
 												<div className="flex items-start gap-3">
@@ -288,7 +306,7 @@ export const ImageSelectionModal: React.FC<ImageSelectionModalProps> = ({
 													<div className="flex-1">
 														<p className="text-sm font-medium text-amber-800">AI 图片生成需要配置</p>
 														<p className="text-xs text-amber-700 mt-1">
-															请在 AI 设置中选择 ZenMux 作为提供商并配置 API 密钥，即可使用 Gemini 2.0 Flash 生成封面图片。
+															请在 AI 设置中配置当前 AI 平台的 API 密钥后再使用该功能。
 														</p>
 														{onOpenAISettings && (
 															<button
@@ -313,7 +331,7 @@ export const ImageSelectionModal: React.FC<ImageSelectionModalProps> = ({
 												{isAIGenerationAvailable && (
 													<div className="flex items-center gap-2 text-xs text-green-600 bg-green-50 px-3 py-2 rounded-lg">
 														<Sparkles className="h-3.5 w-3.5"/>
-														<span>使用 ZenMux Gemini 2.0 Flash 生成</span>
+														<span>{currentProvider === 'zenmux' ? '使用 ZenMux 生成' : `当前平台：${providerDisplayName}`}</span>
 													</div>
 												)}
 
@@ -354,10 +372,10 @@ export const ImageSelectionModal: React.FC<ImageSelectionModalProps> = ({
 															className={`w-full px-4 py-2 text-white rounded-lg transition-colors text-sm ${
 																isAIGenerationAvailable
 																	? 'bg-[#CC785C] hover:bg-[#B86A4E] disabled:bg-gray-400'
-																	: 'bg-purple-500 hover:bg-purple-600 disabled:bg-gray-400'
+																	: 'bg-gray-400'
 															} disabled:cursor-not-allowed`}
 														>
-															{generationStatus.isGenerating ? '生成中...' : (isAIGenerationAvailable ? 'AI 生成' : '模拟生成')}
+															{generationStatus.isGenerating ? '生成中...' : 'AI 生成'}
 														</button>
 													</div>
 												</div>
@@ -366,7 +384,7 @@ export const ImageSelectionModal: React.FC<ImageSelectionModalProps> = ({
 													<div className="space-y-2">
 														<div className="w-full bg-gray-200 rounded-full h-2">
 															<div
-																className={`h-2 rounded-full transition-all duration-300 ${isAIGenerationAvailable ? 'bg-[#CC785C]' : 'bg-purple-500'}`}
+																className={`h-2 rounded-full transition-all duration-300 ${isAIGenerationAvailable ? 'bg-[#CC785C]' : 'bg-gray-400'}`}
 																style={{width: `${generationStatus.progress}%`}}
 															/>
 														</div>

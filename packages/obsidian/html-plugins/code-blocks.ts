@@ -525,7 +525,9 @@ export class CodeBlocks extends UnifiedHtmlPlugin {
 			// 获取主插件实例并触发设置保存
 			const app = (window as any).app;
 			if (app && app.plugins && app.plugins.plugins) {
-				const plugin = app.plugins.plugins["lovpen"];
+				const plugin =
+					app.plugins.plugins["ze-publisher"] ||
+					app.plugins.plugins["zepublish"];
 				if (plugin && typeof plugin.saveSettings === "function") {
 					plugin.saveSettings();
 					logger.debug("已触发插件设置保存，将重新渲染React组件");
