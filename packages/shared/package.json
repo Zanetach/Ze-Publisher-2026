@@ -1,0 +1,16 @@
+{
+	"name": "@ze-publisher/shared",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.ts",
+	"types": "index.ts",
+	"exports": {
+		".": "./index.ts",
+		"./src/logger": "./src/logger.ts"
+	},
+	"scripts": {
+		"build": "echo \"No build needed for shared package\"",
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"private": true
+}

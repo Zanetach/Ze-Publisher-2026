@@ -1,0 +1,527 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* 支持多种深色模式检测：
+   - .dark 类（Web 端）
+   - body.theme-dark（Obsidian 端）
+*/
+@custom-variant dark (&:is(.dark *, .theme-dark *));
+
+/* ===================================
+   统一设计系统 - CSS 变量映射
+   支持 Obsidian 和 Web 两种环境
+   =================================== */
+
+@theme inline {
+	--radius-sm: calc(var(--radius) - 4px);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) + 4px);
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--color-card: var(--card);
+	--color-card-foreground: var(--card-foreground);
+	--color-popover: var(--popover);
+	--color-popover-foreground: var(--popover-foreground);
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-destructive: var(--destructive);
+	--color-border: var(--border);
+	--color-input: var(--input);
+	--color-ring: var(--ring);
+	--color-chart-1: var(--chart-1);
+	--color-chart-2: var(--chart-2);
+	--color-chart-3: var(--chart-3);
+	--color-chart-4: var(--chart-4);
+	--color-chart-5: var(--chart-5);
+	--color-sidebar: var(--sidebar);
+	--color-sidebar-foreground: var(--sidebar-foreground);
+	--color-sidebar-primary: var(--sidebar-primary);
+	--color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+	--color-sidebar-accent: var(--sidebar-accent);
+	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+	--color-sidebar-border: var(--sidebar-border);
+	--color-sidebar-ring: var(--sidebar-ring);
+}
+
+/* ===================================
+   默认主题 (Web 环境)
+   使用 TailwindCSS 的 oklch 颜色空间
+   =================================== */
+:root {
+	--radius: 0.625rem;
+	--background: oklch(1 0 0);
+	--foreground: oklch(0.145 0 0);
+	--card: oklch(1 0 0);
+	--card-foreground: oklch(0.145 0 0);
+	--popover: oklch(1 0 0);
+	--popover-foreground: oklch(0.145 0 0);
+	--primary: #4b5563;
+	--primary-foreground: #ffffff;
+	--secondary: oklch(0.97 0 0);
+	--secondary-foreground: oklch(0.205 0 0);
+	--muted: oklch(0.97 0 0);
+	--muted-foreground: oklch(0.556 0 0);
+	--accent: oklch(0.97 0 0);
+	--accent-foreground: oklch(0.205 0 0);
+	--destructive: oklch(0.577 0.245 27.325);
+	--border: oklch(0.922 0 0);
+	--input: oklch(0.922 0 0);
+	--ring: oklch(0.708 0 0);
+	--chart-1: oklch(0.646 0.222 41.116);
+	--chart-2: oklch(0.6 0.118 184.704);
+	--chart-3: oklch(0.398 0.07 227.392);
+	--chart-4: oklch(0.828 0.189 84.429);
+	--chart-5: oklch(0.769 0.188 70.08);
+	--sidebar: oklch(0.985 0 0);
+	--sidebar-foreground: oklch(0.145 0 0);
+	--sidebar-primary: oklch(0.205 0 0);
+	--sidebar-primary-foreground: oklch(0.985 0 0);
+	--sidebar-accent: oklch(0.97 0 0);
+	--sidebar-accent-foreground: oklch(0.205 0 0);
+	--sidebar-border: oklch(0.922 0 0);
+	--sidebar-ring: oklch(0.708 0 0);
+}
+
+/* ===================================
+   Shadow DOM 内部默认变量
+   由于 CSS 变量会穿透 Shadow DOM 边界（继承特性），需要显式覆盖
+   使用 hex 颜色 + 直接设置，确保不受 Obsidian 变量影响
+   =================================== */
+#zepublish-shadow-mount {
+	/* 🔑 重置所有可能从 Obsidian 继承的变量 */
+	--radius: 0.625rem;
+	--background: #ffffff;
+	--foreground: #1a1a1a;
+	--card: #ffffff;
+	--card-foreground: #1a1a1a;
+	--popover: #ffffff;
+	--popover-foreground: #1a1a1a;
+	--primary: #4b5563;
+	--primary-foreground: #ffffff;
+	--secondary: #f5f5f5;
+	--secondary-foreground: #2d2d2d;
+	--muted: #f5f5f5;
+	--muted-foreground: #737373;
+	--accent: #f5f5f5;
+	--accent-foreground: #2d2d2d;
+	--destructive: #dc2626;
+	--border: #e5e5e5;
+	--input: #e5e5e5;
+	--ring: #a3a3a3;
+	/* 🔑 Tailwind v4 主题色映射 */
+	--color-primary: #4b5563;
+	--color-input: #e5e5e5;
+	--chart-1: #f97316;
+	--chart-2: #14b8a6;
+	--chart-3: #3b82f6;
+	--chart-4: #eab308;
+	--chart-5: #f59e0b;
+	--sidebar: #fafafa;
+	--sidebar-foreground: #1a1a1a;
+	--sidebar-primary: #2d2d2d;
+	--sidebar-primary-foreground: #fafafa;
+	--sidebar-accent: #f5f5f5;
+	--sidebar-accent-foreground: #2d2d2d;
+	--sidebar-border: #e5e5e5;
+	--sidebar-ring: #a3a3a3;
+
+	/* 🔑 重置 Obsidian 的变量名，防止穿透影响 */
+	--background-primary: #ffffff;
+	--background-secondary: #fafafa;
+	--text-normal: #1a1a1a;
+	--text-muted: #737373;
+	--interactive-accent: #2d2d2d;
+
+	/* 🔑 直接设置背景色，不依赖变量 */
+	background-color: #ffffff;
+	color: #1a1a1a;
+}
+
+/* ===================================
+   Shadow DOM 深色模式变量
+   当 ZePublishReact 设置 data-ui-theme="dark" 时生效
+   =================================== */
+#zepublish-shadow-mount[data-ui-theme="dark"],
+.note-preview[data-ui-theme="dark"] {
+	--radius: 0.625rem;
+	--background: #1f2023;
+	--foreground: #e5e7eb;
+	--card: #222327;
+	--card-foreground: #e5e7eb;
+	--popover: #222327;
+	--popover-foreground: #e5e7eb;
+	--primary: #4b5563;
+	--primary-foreground: #f9fafb;
+	--secondary: #2a2b30;
+	--secondary-foreground: #e5e7eb;
+	--muted: #2a2b30;
+	--muted-foreground: #9ca3af;
+	--accent: #2a2b30;
+	--accent-foreground: #e5e7eb;
+	--destructive: #ef4444;
+	--border: #3a3b40;
+	--input: #3a3b40;
+	--ring: #4b5563;
+	/* Tailwind v4 主题色映射 */
+	--color-primary: #4b5563;
+	--color-input: #3a3b40;
+	--chart-1: #3b82f6;
+	--chart-2: #14b8a6;
+	--chart-3: #f59e0b;
+	--chart-4: #8b5cf6;
+	--chart-5: #ef4444;
+	--sidebar: #222327;
+	--sidebar-foreground: #e5e7eb;
+	--sidebar-primary: #e5e7eb;
+	--sidebar-primary-foreground: #222327;
+	--sidebar-accent: #2a2b30;
+	--sidebar-accent-foreground: #e5e7eb;
+	--sidebar-border: #3a3b40;
+	--sidebar-ring: #4b5563;
+
+	/* 重置 Obsidian 变量 */
+	--background-primary: #1f2023;
+	--background-secondary: #222327;
+	--text-normal: #e5e7eb;
+	--text-muted: #9ca3af;
+	--interactive-accent: #4b5563;
+
+	/* 直接设置背景色 */
+	background-color: #1f2023;
+	color: #e5e7eb;
+}
+
+/* ===================================
+   Obsidian 环境适配
+   将 Obsidian 的 CSS 变量映射到我们的设计系统
+   注意：由于 Shadow DOM 隔离，Obsidian 变量无法穿透
+   这里保留映射以备将来通过 JS 桥接使用
+   =================================== */
+.ze-publisher-env {
+	/* 背景和前景色 */
+	--background: var(--background-primary, oklch(1 0 0));
+	--foreground: var(--text-normal, oklch(0.145 0 0));
+
+	/* 卡片 */
+	--card: var(--background-secondary, oklch(1 0 0));
+	--card-foreground: var(--text-normal, oklch(0.145 0 0));
+
+	/* 弹出层 */
+	--popover: var(--background-secondary, oklch(1 0 0));
+	--popover-foreground: var(--text-normal, oklch(0.145 0 0));
+
+	/* 主色调 */
+	--primary: var(--interactive-accent, oklch(0.205 0 0));
+	--primary-foreground: var(--text-on-accent, oklch(0.985 0 0));
+
+	/* 次要色 */
+	--secondary: var(--background-secondary-alt, oklch(0.97 0 0));
+	--secondary-foreground: var(--text-normal, oklch(0.205 0 0));
+
+	/* 静音色 */
+	--muted: var(--background-modifier-form-field, oklch(0.97 0 0));
+	--muted-foreground: var(--text-muted, oklch(0.556 0 0));
+
+	/* 强调色 */
+	--accent: var(--background-modifier-hover, oklch(0.97 0 0));
+	--accent-foreground: var(--text-normal, oklch(0.205 0 0));
+
+	/* 错误/破坏性色 */
+	--destructive: var(--text-error, oklch(0.577 0.245 27.325));
+
+	/* 边框 */
+	--border: var(--background-modifier-border, oklch(0.922 0 0));
+	--input: var(--background-modifier-border, oklch(0.922 0 0));
+	--ring: var(--background-modifier-border-focus, oklch(0.708 0 0));
+}
+
+/* 深色模式变量 - 支持 .dark（Web）和 .theme-dark（Obsidian） */
+.dark,
+.theme-dark {
+	--background: oklch(0.145 0 0);
+	--foreground: oklch(0.985 0 0);
+	--card: oklch(0.205 0 0);
+	--card-foreground: oklch(0.985 0 0);
+	--popover: oklch(0.205 0 0);
+	--popover-foreground: oklch(0.985 0 0);
+	--primary: oklch(0.922 0 0);
+	--primary-foreground: oklch(0.205 0 0);
+	--secondary: oklch(0.269 0 0);
+	--secondary-foreground: oklch(0.985 0 0);
+	--muted: oklch(0.269 0 0);
+	--muted-foreground: oklch(0.708 0 0);
+	--accent: oklch(0.269 0 0);
+	--accent-foreground: oklch(0.985 0 0);
+	--destructive: oklch(0.704 0.191 22.216);
+	--border: oklch(1 0 0 / 10%);
+	--input: oklch(1 0 0 / 15%);
+	--ring: oklch(0.556 0 0);
+	--chart-1: oklch(0.488 0.243 264.376);
+	--chart-2: oklch(0.696 0.17 162.48);
+	--chart-3: oklch(0.769 0.188 70.08);
+	--chart-4: oklch(0.627 0.265 303.9);
+	--chart-5: oklch(0.645 0.246 16.439);
+	--sidebar: oklch(0.205 0 0);
+	--sidebar-foreground: oklch(0.985 0 0);
+	--sidebar-primary: oklch(0.488 0.243 264.376);
+	--sidebar-primary-foreground: oklch(0.985 0 0);
+	--sidebar-accent: oklch(0.269 0 0);
+	--sidebar-accent-foreground: oklch(0.985 0 0);
+	--sidebar-border: oklch(1 0 0 / 10%);
+	--sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+	/* ===================================
+	   作用域化样式 - 仅影响 Ze Publisher 容器内的元素
+	   避免污染 Obsidian 全局环境
+	   =================================== */
+
+	/* 容器内所有元素的边框和轮廓样式 */
+	.note-preview *,
+	#zepublish-react-container *,
+	#zepublish-shadow-mount * {
+		@apply border-border outline-ring/50;
+	}
+
+	/* 容器基础样式 */
+	.note-preview,
+	#zepublish-react-container,
+	#zepublish-shadow-mount {
+		@apply bg-background text-foreground;
+		scrollbar-gutter: auto;
+	}
+
+	/* 渲染区域背景色 - 确保不继承深色 */
+	.zepublish-renderer {
+		@apply bg-background;
+	}
+
+	/* Web 独立运行时的 body 样式（非 Obsidian 环境） */
+	body:has(#root > .note-preview) {
+		@apply bg-background text-foreground;
+		padding: 20px !important;
+	}
+
+	/* Radix UI Portal 样式保持 */
+	body[data-scroll-locked]:has(#root > .note-preview) {
+		padding: 20px !important;
+	}
+
+	/* 防止内容容器的 padding 被覆盖 */
+	.zepublish-content-container {
+		padding: 0 !important;
+	}
+
+	/* ===================================
+	   Ze Publisher 基础样式 - 统一到 CSS 中
+	   移除组件内的硬编码样式
+	   =================================== */
+	.zepublish {
+		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+		line-height: 1.6;
+		color: #333;
+	}
+
+	.zepublish h1,
+	.zepublish h2,
+	.zepublish h3 {
+		margin-top: 1em;
+		margin-bottom: 0.5em;
+		font-weight: 600;
+	}
+
+	.zepublish p {
+		margin-bottom: 1em;
+	}
+
+	.zepublish pre {
+		background: #f6f8fa;
+		padding: 1em;
+		border-radius: 6px;
+		overflow-x: auto;
+	}
+
+	.zepublish code {
+		background: #f6f8fa;
+		padding: 0.2em 0.4em;
+		border-radius: 3px;
+		font-size: 0.9em;
+	}
+
+	.zepublish pre code {
+		background: none;
+		padding: 0;
+	}
+
+	/* ===================================
+	   Toolbar 暗色可读性修复（覆盖遗留硬编码浅色样式）
+	   =================================== */
+	#zepublish-toolbar-container[data-ui-dark="true"] {
+		/* 统一暗色主题令牌，确保所有参数页背景/文字/边框一致 */
+		--background: #1f2023;
+		--foreground: #e5e7eb;
+		--card: #222327;
+		--card-foreground: #e5e7eb;
+		--popover: #222327;
+		--popover-foreground: #e5e7eb;
+		--muted: #2a2b30;
+		--muted-foreground: #9ca3af;
+		--accent: #2a2b30;
+		--accent-foreground: #e5e7eb;
+		--border: #3a3b40;
+		--input: #3a3b40;
+		--ring: #4b5563;
+		--primary: #4b5563;
+		--primary-foreground: #f9fafb;
+		background-color: #1f2023 !important;
+		color: #e5e7eb !important;
+	}
+
+	#zepublish-toolbar-container[data-ui-dark="true"] .bg-background,
+	#zepublish-toolbar-container[data-ui-dark="true"] .bg-card,
+	#zepublish-toolbar-container[data-ui-dark="true"] .bg-popover {
+		background-color: #222327 !important;
+	}
+
+	#zepublish-toolbar-container[data-ui-dark="true"] .bg-muted,
+	#zepublish-toolbar-container[data-ui-dark="true"] .bg-accent {
+		background-color: #2a2b30 !important;
+	}
+
+	#zepublish-toolbar-container[data-ui-dark="true"] .text-foreground,
+	#zepublish-toolbar-container[data-ui-dark="true"] .text-card-foreground,
+	#zepublish-toolbar-container[data-ui-dark="true"] .text-popover-foreground {
+		color: #e5e7eb !important;
+	}
+
+	#zepublish-toolbar-container[data-ui-dark="true"] .text-muted-foreground {
+		color: #9ca3af !important;
+	}
+
+	#zepublish-toolbar-container[data-ui-dark="true"] .border,
+	#zepublish-toolbar-container[data-ui-dark="true"] .border-border,
+	#zepublish-toolbar-container[data-ui-dark="true"] .border-input {
+		border-color: #3a3b40 !important;
+	}
+
+	#zepublish-toolbar-container[data-ui-dark="true"] .bg-white,
+	#zepublish-toolbar-container[data-ui-dark="true"] .bg-\[\#FAFAFA\],
+	#zepublish-toolbar-container[data-ui-dark="true"] .bg-\[\#F3F4F6\],
+	#zepublish-toolbar-container[data-ui-dark="true"] .bg-\[\#E5E7EB\],
+	#zepublish-toolbar-container[data-ui-dark="true"] .bg-\[\#F8FAFC\],
+	#zepublish-toolbar-container[data-ui-dark="true"] .bg-\[\#F7F4EC\],
+	#zepublish-toolbar-container[data-ui-dark="true"] .bg-\[\#E2E8F0\],
+	#zepublish-toolbar-container[data-ui-dark="true"] .bg-white\/60,
+	#zepublish-toolbar-container[data-ui-dark="true"] .hover\:bg-\[\#F3F4F6\]:hover,
+	#zepublish-toolbar-container[data-ui-dark="true"] .hover\:bg-\[\#F7F4EC\]:hover,
+	#zepublish-toolbar-container[data-ui-dark="true"] .hover\:bg-\[\#E2E8F0\]:hover {
+		background-color: #222327 !important;
+	}
+
+	#zepublish-toolbar-container[data-ui-dark="true"] .border-\[\#E5E7EB\],
+	#zepublish-toolbar-container[data-ui-dark="true"] .border-\[\#CBD5E1\],
+	#zepublish-toolbar-container[data-ui-dark="true"] .border-\[\#D1D5DB\],
+	#zepublish-toolbar-container[data-ui-dark="true"] .border-\[\#E8E6DC\] {
+		border-color: #3a3b40 !important;
+	}
+
+	#zepublish-toolbar-container[data-ui-dark="true"] .bg-blue-50,
+	#zepublish-toolbar-container[data-ui-dark="true"] .bg-blue-500,
+	#zepublish-toolbar-container[data-ui-dark="true"] .bg-blue-600,
+	#zepublish-toolbar-container[data-ui-dark="true"] .bg-blue-700,
+	#zepublish-toolbar-container[data-ui-dark="true"] .hover\:bg-blue-500:hover,
+	#zepublish-toolbar-container[data-ui-dark="true"] .hover\:bg-blue-600:hover,
+	#zepublish-toolbar-container[data-ui-dark="true"] .hover\:bg-blue-700:hover {
+		background-color: #2a2b30 !important;
+	}
+
+	#zepublish-toolbar-container[data-ui-dark="true"] .border-blue-200,
+	#zepublish-toolbar-container[data-ui-dark="true"] .border-blue-300,
+	#zepublish-toolbar-container[data-ui-dark="true"] .border-blue-400,
+	#zepublish-toolbar-container[data-ui-dark="true"] .border-blue-500,
+	#zepublish-toolbar-container[data-ui-dark="true"] .hover\:border-blue-300:hover,
+	#zepublish-toolbar-container[data-ui-dark="true"] .hover\:border-blue-400:hover,
+	#zepublish-toolbar-container[data-ui-dark="true"] .hover\:border-blue-500:hover {
+		border-color: #3a3b40 !important;
+	}
+
+	#zepublish-toolbar-container[data-ui-dark="true"] .text-\[\#111827\],
+	#zepublish-toolbar-container[data-ui-dark="true"] .text-\[\#0F172A\],
+	#zepublish-toolbar-container[data-ui-dark="true"] .text-\[\#374151\] {
+		color: #e5e7eb !important;
+	}
+
+	#zepublish-toolbar-container[data-ui-dark="true"] .text-\[\#4B5563\],
+	#zepublish-toolbar-container[data-ui-dark="true"] .text-\[\#6B7280\],
+	#zepublish-toolbar-container[data-ui-dark="true"] .text-\[\#64748B\],
+	#zepublish-toolbar-container[data-ui-dark="true"] .text-\[\#87867F\] {
+		color: #9ca3af !important;
+	}
+
+	#zepublish-toolbar-container[data-ui-dark="true"] input,
+	#zepublish-toolbar-container[data-ui-dark="true"] textarea,
+	#zepublish-toolbar-container[data-ui-dark="true"] select {
+		background-color: #222327 !important;
+		color: #e5e7eb !important;
+		border-color: #3a3b40 !important;
+	}
+
+	#zepublish-toolbar-container[data-ui-dark="true"] input::placeholder,
+	#zepublish-toolbar-container[data-ui-dark="true"] textarea::placeholder {
+		color: #9ca3af !important;
+		opacity: 0.85;
+	}
+
+	/* 暗色模式主按钮统一为灰黑强调色（替换青绿/蓝色主按钮） */
+	#zepublish-toolbar-container[data-ui-dark="true"] .bg-primary,
+	#zepublish-toolbar-container[data-ui-dark="true"] .bg-\[\#0F766E\],
+	#zepublish-toolbar-container[data-ui-dark="true"] .bg-\[\#D1FAE5\],
+	#zepublish-toolbar-container[data-ui-dark="true"] .bg-\[\#CC785C\] {
+		background-color: #4b5563 !important;
+		color: #f9fafb !important;
+	}
+
+	#zepublish-toolbar-container[data-ui-dark="true"] .hover\:bg-primary\/90:hover,
+	#zepublish-toolbar-container[data-ui-dark="true"] .hover\:bg-\[\#B86A4E\]:hover,
+	#zepublish-toolbar-container[data-ui-dark="true"] .hover\:bg-\[\#A7F3D0\]:hover,
+	#zepublish-toolbar-container[data-ui-dark="true"] .hover\:bg-\[\#CC785C\]:hover {
+		background-color: #3f4652 !important;
+		color: #f9fafb !important;
+	}
+
+	#zepublish-toolbar-container[data-ui-dark="true"] .text-\[\#0F766E\] {
+		color: #cbd5e1 !important;
+	}
+
+	/* 暗色模式滚动条统一，去掉内容区白边 */
+	#zepublish-toolbar-container[data-ui-dark="true"] * {
+		scrollbar-color: #5a5b60 #1f2023;
+	}
+
+	#zepublish-toolbar-container[data-ui-dark="true"] ::-webkit-scrollbar {
+		width: 10px;
+		height: 10px;
+	}
+
+	#zepublish-toolbar-container[data-ui-dark="true"] ::-webkit-scrollbar-track {
+		background: #1f2023;
+	}
+
+	#zepublish-toolbar-container[data-ui-dark="true"] ::-webkit-scrollbar-thumb {
+		background: #5a5b60;
+		border-radius: 8px;
+		border: 2px solid #1f2023;
+	}
+
+	#zepublish-toolbar-container[data-ui-dark="true"] ::-webkit-scrollbar-thumb:hover {
+		background: #6b6d73;
+	}
+}

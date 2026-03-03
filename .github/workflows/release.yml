@@ -1,0 +1,135 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: |
+          # 尝试使用 frozen-lockfile，如果失败则重新生成
+          pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
+          # 确保 workspace 依赖被正确链接
+          pnpm install
+
+      - name: Type check
+        run: pnpm check
+
+      - name: Build project
+        run: pnpm build
+
+      - name: Download highlights
+        run: pnpm download-highlights
+
+      - name: Get version from tag or input
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+            echo "tag=v${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Prepare release files
+        run: |
+          # 创建完整插件包，直接复制 dist 目录内容
+          mkdir -p obsidian-zepublish
+          cp -r packages/obsidian/dist/* obsidian-zepublish/
+
+          # 创建压缩包（固定文件名，便于 curl 安装）
+          mkdir -p release-files
+          zip -r release-files/obsidian-zepublish.zip obsidian-zepublish/
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # 获取上一个标签
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+          
+          if [ -z "$PREV_TAG" ]; then
+            CHANGELOG="Initial release"
+          else
+            CHANGELOG=$(git log --pretty=format:"- %s" $PREV_TAG..HEAD | head -20)
+          fi
+          
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.get_version.outputs.tag }}
+          name: Release ${{ steps.get_version.outputs.version }}
+          body: |
+            ## 更新内容
+            
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ## 安装方法
+
+            ### 方法一：一键安装（推荐）
+            1. 下载 `obsidian-zepublish.zip` 完整插件包
+            2. 解压到你的 Obsidian 仓库的 `.obsidian/plugins/` 目录下
+            3. 在 Obsidian 设置中启用 Ze Publisher 插件
+            
+            ### 方法二：BRAT 插件安装
+            在 BRAT 插件中添加仓库地址：`markshawn2020/zepublish`
+            
+            ## 主要特性
+            - 🚀 一键将 Obsidian 笔记发布到微信公众号、知乎、小红书、Twitter
+            - 🎨 30+ 精美主题，完美保持格式
+            - 💻 专业代码高亮和行号显示
+            - 🔗 智能链接处理，针对微信公众号优化
+            - 📝 模板系统，自定义内容渲染
+          files: |
+            release-files/obsidian-zepublish.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

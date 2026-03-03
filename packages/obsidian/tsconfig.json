@@ -1,0 +1,22 @@
+{
+	"extends": "../../tsconfig.json",
+	"compilerOptions": {
+		"baseUrl": ".",
+		"skipLibCheck": true,
+		"paths": {
+			"@/*": [
+				"../frontend/src/*"
+			],
+			"@ze-publisher/shared": [
+				"../shared/index.ts"
+			],
+			"@ze-publisher/shared/*": [
+				"../shared/*"
+			]
+		}
+	},
+	"include": [
+		"**/*.ts",
+		"**/*.tsx"
+	]
+}

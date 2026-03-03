@@ -1,0 +1,196 @@
+import React, { useState, useEffect } from "react";
+import { createRoot, Root } from "react-dom/client";
+import { ZePublishReactBridge } from "./components/ZePublishReactBridge";
+import {
+	type ZePublishReactLib,
+	ZePublishReactProps,
+	ShadowMountOptions,
+} from "./types";
+import { JotaiProvider } from "./providers/JotaiProvider";
+import { migrateLegacyStorageKeys } from "./services/storageMigration";
+import "./index.css";
+
+// Store for managing React roots
+const rootStore = new Map<HTMLElement, Root>();
+
+// Wrapper component to manage props updates without remounting JotaiProvider
+const ZePublishReactWrapper: React.FC<{
+	initialProps: ZePublishReactProps;
+	container?: HTMLElement;
+	portalContainer?: HTMLElement | null;
+}> = ({ initialProps, container, portalContainer }) => {
+	const [props, setProps] = useState(initialProps);
+
+	// Expose update function to parent
+	useEffect(() => {
+		if (container) {
+			(container as any).__updateProps = setProps;
+		}
+	}, [container]);
+
+	return <ZePublishReactBridge {...props} />;
+};
+
+// Library implementation
+const ZePublishReactLib: ZePublishReactLib = {
+	mount: (
+		container: HTMLElement,
+		props: ZePublishReactProps,
+		options?: ShadowMountOptions,
+	) => {
+		console.log("[ZePublishReactLib] mount() called", {
+			container: container?.id,
+			hasShadowRoot: !!options?.shadowRoot,
+			hasProps: !!props,
+		});
+
+		// Clean up existing root if any
+		if (rootStore.has(container)) {
+			ZePublishReactLib.unmount(container);
+		}
+
+		// Determine the actual mount target
+		let mountTarget: HTMLElement = container;
+		let portalContainer: HTMLElement | null = null;
+
+		if (options?.shadowRoot) {
+			console.log(
+				"[ZePublishReactLib] Shadow DOM mode - creating containers",
+			);
+			// Shadow DOM mode: create mount container inside shadow root
+			const shadowContainer = document.createElement("div");
+			shadowContainer.id = "zepublish-shadow-mount";
+
+			// 🔑 使用内联样式直接设置，确保最高优先级
+			// CSS 变量会穿透 Shadow DOM，所以必须在这里显式覆盖
+			shadowContainer.style.cssText = `
+				width: 100%;
+				height: 100%;
+				min-height: 0;
+				display: flex;
+				overflow: hidden;
+				background-color: #ffffff !important;
+				color: #1a1a1a !important;
+				--background: #ffffff;
+				--foreground: #1a1a1a;
+				--background-primary: #ffffff;
+				--background-secondary: #fafafa;
+				--text-normal: #1a1a1a;
+				--text-muted: #737373;
+				--card: #ffffff;
+				--card-foreground: #1a1a1a;
+				--popover: #ffffff;
+				--popover-foreground: #1a1a1a;
+				--primary: #0F766E;
+				--primary-foreground: #ffffff;
+				--secondary: #f5f5f5;
+				--secondary-foreground: #2d2d2d;
+				--muted: #f5f5f5;
+				--muted-foreground: #737373;
+				--accent: #f5f5f5;
+				--accent-foreground: #2d2d2d;
+				--destructive: #dc2626;
+				--border: #e5e5e5;
+				--input: #e5e5e5;
+				--ring: #a3a3a3;
+				--radius: 0.625rem;
+			`;
+
+			options.shadowRoot.appendChild(shadowContainer);
+			mountTarget = shadowContainer;
+
+			// Create portal container for Radix UI
+			const portalDiv = document.createElement("div");
+			portalDiv.id = "zepublish-portal-root";
+			portalDiv.style.position = "relative";
+			portalDiv.style.zIndex = "9999";
+			options.shadowRoot.appendChild(portalDiv);
+			portalContainer = options.portalContainer || portalDiv;
+
+			// Inject styles into shadow root
+			if (options.styles) {
+				for (const css of options.styles) {
+					const style = document.createElement("style");
+					style.textContent = css;
+					options.shadowRoot.appendChild(style);
+				}
+			}
+		}
+
+		// Create new root and render component
+		const root = createRoot(mountTarget);
+		rootStore.set(container, root);
+
+		// Store props, shadow info, and options for updates/remounts
+		(container as any).__zepublishProps = props;
+		(container as any).__shadowRoot = options?.shadowRoot;
+		(container as any).__portalContainer = portalContainer;
+		(container as any).__shadowOptions = options;
+
+		console.log("[ZePublishReactLib] Rendering to mountTarget", {
+			mountTargetId: mountTarget.id,
+			portalContainerId: portalContainer?.id,
+		});
+
+		try {
+			root.render(
+				<JotaiProvider portalContainer={portalContainer}>
+					<ZePublishReactWrapper
+						initialProps={props}
+						container={container}
+						portalContainer={portalContainer}
+					/>
+				</JotaiProvider>,
+			);
+			console.log("[ZePublishReactLib] render() completed successfully");
+		} catch (error) {
+			console.error("[ZePublishReactLib] render() failed:", error);
+		}
+	},
+
+	unmount: (container: HTMLElement) => {
+		const root = rootStore.get(container);
+		if (root) {
+			root.unmount();
+			rootStore.delete(container);
+		}
+	},
+
+	update: (container: HTMLElement, props: ZePublishReactProps) => {
+		return new Promise<void>((resolve) => {
+			const root = rootStore.get(container);
+
+			// Store new props
+			(container as any).__zepublishProps = props;
+
+			if (root && (container as any).__updateProps) {
+				// Update props without remounting JotaiProvider
+				(container as any).__updateProps(props);
+				// 使用多个requestAnimationFrame确保React的useEffect完全执行完毕
+				requestAnimationFrame(() => {
+					requestAnimationFrame(() => {
+						// 调用CSS变量更新
+						props.onUpdateCSSVariables();
+						resolve();
+					});
+				});
+			} else {
+				// If no root exists or update function not available, remount with stored options
+				const storedOptions = (container as any).__shadowOptions;
+				ZePublishReactLib.mount(container, props, storedOptions);
+				resolve();
+			}
+		});
+	},
+};
+
+// Export for UMD build
+if (typeof window !== "undefined") {
+	migrateLegacyStorageKeys();
+	(window as any).ZePublishReactLib = ZePublishReactLib;
+	(window as any).zepublishReact = ZePublishReactLib;
+}
+
+// Export for ES modules
+export { ZePublishReactLib as default, ZePublishReactBridge };
+export type { ZePublishReactProps, ZePublishReactLib };
